@@ -1,5 +1,6 @@
 import random
 import math
+import matplotlib.pyplot as plt
 
 from crossover.ox import ox
 from crossover.pmx import pmx
@@ -7,7 +8,7 @@ from model.TSP import TSP
 from mutation.inversion import inversion
 
 
-def read_file_tsp(path='coords.data'):
+def read_file_tsp(path='coords.tsp'):
     tsp = TSP()
 
     with open(path, 'r') as file:
@@ -83,7 +84,7 @@ def tournament_selection(population, dist_matrix, tournament_size=3):
     return selected[0]
 
 
-def genetic_algorithm(dist_matrix, pop_size=100, generations=100, crossover_prob=1):
+def genetic_algorithm(dist_matrix, pop_size=100, generations=1000, crossover_prob=1):
     num_cities = len(dist_matrix)
     population = initialize_population(pop_size, num_cities)
 
@@ -120,9 +121,12 @@ def genetic_algorithm(dist_matrix, pop_size=100, generations=100, crossover_prob
     return best, best_distance
 
 
-data = read_file_tsp("./data/coords.tsp")
+data = read_file_tsp("./data/test.tsp")
 distances = distance_matrix(data.node_coords)
 best_solution, best_length = genetic_algorithm(distances)
 
 print("\nNajlepsza trasa:", best_solution)
 print(f"Długość trasy: {best_length:.2f}")
+
+
+data.plot(best_solution)

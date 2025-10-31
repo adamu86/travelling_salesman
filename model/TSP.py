@@ -1,3 +1,5 @@
+from matplotlib import pyplot as plt
+
 from model.Node import Node
 
 
@@ -21,3 +23,30 @@ class TSP:
                 f"dimension={self.dimension}, "
                 f"edge_weight_type={self.edge_weight_type}, "
                 f"nodes_coords={self.node_coords})")
+
+    def plot(self, best_solution):
+        x_route = [self.node_coords[i].x for i in best_solution]
+        y_route = [self.node_coords[i].y for i in best_solution]
+
+        x_route.append(x_route[0])
+        y_route.append(y_route[0])
+
+        plt.scatter([node.x for node in self.node_coords.values()],
+                    [node.y for node in self.node_coords.values()],
+                    s=40, marker='o', color='blue')
+
+        plt.plot(x_route, y_route, color='orange', linewidth=1.5, marker='o')
+
+        for key, node in self.node_coords.items():
+            if key == best_solution[0]:
+                plt.text(node.x, node.y, str(key), fontsize=15, color='red')
+            elif key == best_solution[-1]:
+                plt.text(node.x, node.y, str(key), fontsize=15, color='green')
+            else:
+                plt.text(node.x, node.y, str(key), fontsize=10, color='black')
+
+        plt.title("Best route")
+        plt.xlabel("X")
+        plt.ylabel("Y")
+        plt.savefig(f"./output/{self.name}_result.png")
+
