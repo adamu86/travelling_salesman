@@ -1,8 +1,9 @@
 import random
 import math
-from TSP import TSP
+from model.TSP import TSP
 
-def read_file_tsp(path='coords.tsp'):
+
+def read_file_tsp(path='coords.data'):
     tsp = TSP()
 
     with open(path, 'r') as file:
@@ -72,7 +73,7 @@ def fitness(individual, dist_matrix):
     return total_distance
 
 
-data = read_file_tsp("coords.tsp")
+data = read_file_tsp("data/coords.tsp")
 
 distance_matrix = distance_matrix(data.node_coords)
 

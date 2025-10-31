@@ -1,10 +1,5 @@
-class Node:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+from model.Node import Node
 
-    def __repr__(self):
-        return f"Node({self.x}, {self.y})"
 
 class TSP:
     def __init__(self, name=None, type_=None, comment=None, dimension=None, edge_weight_type=None):
