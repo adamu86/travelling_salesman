@@ -1,6 +1,10 @@
 import random
 import math
+
+from crossover.ox import ox
+from crossover.pmx import pmx
 from model.TSP import TSP
+from mutation.inversion import inversion
 
 
 def read_file_tsp(path='coords.data'):
@@ -73,10 +77,52 @@ def fitness(individual, dist_matrix):
     return total_distance
 
 
-data = read_file_tsp("data/coords.tsp")
+def tournament_selection(population, dist_matrix, tournament_size=3):
+    selected = random.sample(population, tournament_size)
+    selected.sort(key=lambda ind: fitness(ind, dist_matrix))
+    return selected[0]
 
-distance_matrix = distance_matrix(data.node_coords)
 
-population = initialize_population(50, int(data.dimension))
+def genetic_algorithm(dist_matrix, pop_size=100, generations=100, crossover_prob=1):
+    num_cities = len(dist_matrix)
+    population = initialize_population(pop_size, num_cities)
 
-fitness(population[2], distance_matrix)
+    best = min(population, key=lambda ind: fitness(ind, dist_matrix))
+    best_distance = fitness(best, dist_matrix)
+
+    for gen in range(generations):
+        new_population = []
+
+        while len(new_population) < pop_size:
+            parent1 = tournament_selection(population, dist_matrix)
+            parent2 = tournament_selection(population, dist_matrix)
+
+            # krzyżowanie
+            child = pmx(parent1, parent2)
+            # child = ox(parent1, parent2)
+
+            # mutacja
+            child = inversion(child)
+
+            new_population.append(child)
+
+        # aktualizacja populacji
+        population = new_population
+
+        current_best = min(population, key=lambda ind: fitness(ind, dist_matrix))
+        current_best_distance = fitness(current_best, dist_matrix)
+
+        if current_best_distance < best_distance:
+            best, best_distance = current_best, current_best_distance
+
+        print(f"Generacja {gen + 1}: długość trasy = {best_distance:.2f}")
+
+    return best, best_distance
+
+
+data = read_file_tsp("./data/coords.tsp")
+dist_matrix = distance_matrix(data.node_coords)
+best_solution, best_length = genetic_algorithm(dist_matrix)
+
+print("\nNajlepsza trasa:", best_solution)
+print(f"Długość trasy: {best_length:.2f}")

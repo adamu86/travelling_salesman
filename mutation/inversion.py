@@ -1,7 +1,7 @@
 import random
 
 
-def mutation_inversion(individual):
+def inversion(individual):
     start, end = sorted(random.sample(range(len(individual)), 2))
 
     fragment = individual[start:end]

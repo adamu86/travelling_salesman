@@ -11,7 +11,7 @@ def pmx(parent1, parent2):
 
     mapping = {}
     for i in range(start, end):
-        mapping[parent2[i]] = parent1[i]
+        mapping[parent1[i]] = parent2[i]
 
     for i in range(size):
         if child[i] is not None:
@@ -19,10 +19,11 @@ def pmx(parent1, parent2):
 
         gene = parent2[i]
 
-        while gene in mapping:
-            gene = mapping[gene]
-
-        child[i] = gene
+        if gene not in child:
+            child[i] = gene
+        else:
+            while gene in mapping:
+                gene = mapping[gene]
+            child[i] = gene
 
     return child
-
