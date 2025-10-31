@@ -1,62 +1,81 @@
 import random
 import math
-import re
-import time
-import numpy as np
-from collections import namedtuple
+from TSP import TSP
 
+def read_file_tsp(path='coords.tsp'):
+    tsp = TSP()
 
-def read_file_tsp(path='cords.txt'):
-    data = {}
-    coords = []
+    with open(path, 'r') as file:
+        nodes_section = False
 
-    with open('coords.tsp', 'r') as file:
         for line in file:
             line = line.strip()
 
-            if line == "NODE_COORD_SECTION":
-                data['NODE_COORD_SECTION'] = coords
-                break
-
-            if not line:
+            if not line or line.startswith('#'):
                 continue
 
-            if ':' in line:
-                key, value = line.split(':', 1)
-                data[key.strip()] = value.strip()
-
-        Point = namedtuple('Point', ['idx', 'x', 'y'])
-
-        for line in file:
-            line = line.strip()
-
-            if not line or line == "EOF":
+            if line.startswith('NAME:'):
+                tsp.name = line.split(':', 1)[1].strip()
+            elif line.startswith('TYPE:'):
+                tsp.type = line.split(':', 1)[1].strip()
+            elif line.startswith('COMMENT:'):
+                tsp.comment = line.split(':', 1)[1].strip()
+            elif line.startswith('DIMENSION:'):
+                tsp.dimension = int(line.split(':', 1)[1].strip())
+            elif line.startswith('EDGE_WEIGHT_TYPE:'):
+                tsp.edge_weight_type = line.split(':', 1)[1].strip()
+            elif line == 'NODE_COORD_SECTION':
+                nodes_section = True
+            elif line == 'EOF':
                 break
+            elif nodes_section:
+                tsp.add_node(int(line.split()[0]) - 1, line.split()[1], line.split()[2])
 
-            if len(line.split()) >= 3:
-                coords.append(
-                    Point(
-                        idx = line.split()[0],
-                        x = float(line.split()[1]),
-                        y = float(line.split()[2])
-                    )
-                )
+    return tsp
 
-    return data
 
-def distance_matrix(coords):
-    dist_matrix = [[0] * len(coords) for _ in range(len(coords))]
+def distance_matrix(node_coords):
+    dist_matrix = [[0] * len(node_coords) for _ in range(len(node_coords))]
 
-    for i in range(len(coords)):
-        for j in range(len(coords)):
-            dist_matrix[i][j] = float(
-                math.sqrt(
-                    abs(
-                        math.pow(coords[i].x - coords[j].x, 2) + math.pow(coords[i].y - coords[j].y, 2)
-                    )
-                )
-            )
+    for i in range(len(node_coords)):
+        for j in range(len(node_coords)):
+            dx = float(node_coords[i].x) - float(node_coords[j].x)
 
-data = read_file_tsp()
+            dy = float(node_coords[i].y) - float(node_coords[j].y)
 
-distance_matrix(data['NODE_COORD_SECTION'])
+            dist_matrix[i][j] = math.sqrt(dx * dx + dy * dy)
+
+    return dist_matrix
+
+
+def initialize_population(population_size, num_cities):
+    population = []
+
+    for _ in range(population_size):
+        individual = list(range(num_cities))
+
+        random.shuffle(individual)
+
+        population.append(individual)
+
+    return population
+
+
+def fitness(individual, dist_matrix):
+    total_distance = 0
+
+    for i in range(len(individual) - 1):
+        total_distance += dist_matrix[individual[i]][individual[i + 1]]
+
+    total_distance += dist_matrix[individual[-1]][individual[0]]
+
+    return total_distance
+
+
+data = read_file_tsp("coords.tsp")
+
+distance_matrix = distance_matrix(data.node_coords)
+
+population = initialize_population(50, int(data.dimension))
+
+fitness(population[2], distance_matrix)
