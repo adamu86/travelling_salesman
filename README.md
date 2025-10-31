@@ -1,4 +1,4 @@
-## Algorytm genetyczny dla problemu komiwojażera
+# Algorytm genetyczny dla problemu komiwojażera
 
 >Algorytm genetyczny jako narzędzie do rozwiązywania problemu komiwojażera. Implementacja algorytmu genetycznego opartego na reprezentacji permutacyjnej do rozwiązywania problemu komiwojażera. Algorytm powinien wykorzystywać 3 różne operatory krzyżowania opisane w literaturze i operator mutacji. Badania eksperymentalne: a) porównanie ze standardowymi benchmarkami dla problemu komiwojażera (np. biblioteka TSPLIB). b) własny generator grafów losowych dla problemu komiwojażera i porównanie ze standardową heurystyką (np. Lina-Kernighana, 3-opt, 2-opt). Algorytm memetyczny, w którym każde nowe rozwiązanie wygenerowane przez operatory krzyżowania i mutacji jest ulepszane przez algorytm optymalizacji lokalnej.
 
