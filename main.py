@@ -121,8 +121,8 @@ def genetic_algorithm(dist_matrix, pop_size=100, generations=100, crossover_prob
 
 
 data = read_file_tsp("./data/coords.tsp")
-dist_matrix = distance_matrix(data.node_coords)
-best_solution, best_length = genetic_algorithm(dist_matrix)
+distances = distance_matrix(data.node_coords)
+best_solution, best_length = genetic_algorithm(distances)
 
 print("\nNajlepsza trasa:", best_solution)
 print(f"Długość trasy: {best_length:.2f}")
