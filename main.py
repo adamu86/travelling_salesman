@@ -78,7 +78,7 @@ def fitness(individual, dist_matrix):
     return total_distance
 
 
-def tournament_selection(population, dist_matrix, tournament_size=3):
+def tournament_selection(population, dist_matrix, tournament_size=10):
     selected = random.sample(population, tournament_size)
     selected.sort(key=lambda ind: fitness(ind, dist_matrix))
     return selected[0]
@@ -99,8 +99,8 @@ def genetic_algorithm(dist_matrix, pop_size=100, generations=1000, crossover_pro
             parent2 = tournament_selection(population, dist_matrix)
 
             # krzyżowanie
-            child = pmx(parent1, parent2)
-            # child = ox(parent1, parent2)
+            # child = pmx(parent1, parent2)
+            child = ox(parent1, parent2)
 
             # mutacja
             child = inversion(child)
@@ -121,7 +121,7 @@ def genetic_algorithm(dist_matrix, pop_size=100, generations=1000, crossover_pro
     return best, best_distance
 
 
-data = read_file_tsp("./data/test.tsp")
+data = read_file_tsp("./data/coords.tsp")
 distances = distance_matrix(data.node_coords)
 best_solution, best_length = genetic_algorithm(distances)
 

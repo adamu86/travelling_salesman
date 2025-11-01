@@ -1,5 +1,4 @@
 from matplotlib import pyplot as plt
-
 from model.Node import Node
 
 
@@ -45,7 +44,7 @@ class TSP:
             else:
                 plt.text(node.x, node.y, str(key), fontsize=10, color='black')
 
-        plt.title("Best route")
+        plt.title(f"Best route: {self.name}")
         plt.xlabel("X")
         plt.ylabel("Y")
         plt.savefig(f"./output/{self.name}_result.png")

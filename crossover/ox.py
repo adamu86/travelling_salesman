@@ -11,7 +11,7 @@ def ox(parent1, parent2):
 
     rest = [x for x in parent2 if x not in child]
 
-    index = (end + 1) % size
+    index = end % size
     for element in rest:
         while child[index] is not None:
             index = (index + 1) % size
