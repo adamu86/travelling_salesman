@@ -23,7 +23,26 @@ class TSP:
                 f"edge_weight_type={self.edge_weight_type}, "
                 f"nodes_coords={self.node_coords})")
 
-    def plot(self, best_solution):
+    def plot(self, best_solution=None):
+        plt.clf()
+        plt.figure(figsize=(9, 7))
+
+        if best_solution is None:
+            x_route = [self.node_coords[i].x for i in self.node_coords]
+            y_route = [self.node_coords[i].y for i in self.node_coords]
+
+            plt.scatter(x_route, y_route, s=30, marker='o', color='orange')
+            plt.title(f"Nodes for: {self.name}")
+            plt.xlabel("X")
+            plt.ylabel("Y")
+
+            for i, (x, y) in enumerate(zip(x_route, y_route)):
+                plt.text(x, y, str(i), fontsize=8, color='black')
+
+            plt.savefig(f"./output/{self.name}_nodes.png")
+
+            return
+
         x_route = [self.node_coords[i].x for i in best_solution]
         y_route = [self.node_coords[i].y for i in best_solution]
 
@@ -32,19 +51,21 @@ class TSP:
 
         plt.scatter([node.x for node in self.node_coords.values()],
                     [node.y for node in self.node_coords.values()],
-                    s=40, marker='o', color='blue')
+                    s=30, marker='o', color='blue')
 
-        plt.plot(x_route, y_route, color='orange', linewidth=1.5, marker='o')
+        plt.plot(x_route, y_route, color='orange', linewidth=1, marker='o')
 
         for key, node in self.node_coords.items():
             if key == best_solution[0]:
                 plt.text(node.x, node.y, str(key), fontsize=15, color='red')
+                plt.text(node.x - 8, node.y - 20, 'START', fontsize=10, color='red')
             elif key == best_solution[-1]:
                 plt.text(node.x, node.y, str(key), fontsize=15, color='green')
+                plt.text(node.x - 6, node.y - 20, 'END', fontsize=10, color='green')
             else:
-                plt.text(node.x, node.y, str(key), fontsize=10, color='black')
+                plt.text(node.x, node.y, str(key), fontsize=8, color='black')
 
-        plt.title(f"Best route: {self.name}")
+        plt.title(f"Best route for: {self.name}")
         plt.xlabel("X")
         plt.ylabel("Y")
         plt.savefig(f"./output/{self.name}_result.png")

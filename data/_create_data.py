@@ -28,13 +28,3 @@ with open('test.tsp', 'w', encoding='utf-8') as file:
         file.write(f"{i + 1} {random1:.2f} {random2:.2f}\n")
 
     file.write("EOF")
-
-    plt.scatter(x_vals, y_vals, s=40, marker='o', color='orange')
-    plt.title("Random nodes for test")
-    plt.xlabel("X")
-    plt.ylabel("Y")
-
-    for i, (x, y) in enumerate(zip(x_vals, y_vals)):
-        plt.text(x, y, str(i), fontsize=10, color='black')
-
-    plt.savefig("../output/test_nodes.png", dpi=300)

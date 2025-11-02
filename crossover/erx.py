@@ -1,12 +1,10 @@
 import random
 
 
-def ex(parent1, parent2):
+def erx(parent1, parent2):
     size = len(parent1)
 
-    edges = {}
-    for city in parent1:
-        edges[city] = set()
+    edges = {gene: set() for gene in parent1}
 
     for i in range(size):
         city = parent1[i]
@@ -20,21 +18,26 @@ def ex(parent1, parent2):
         edges[city].update([left, right])
 
     child = []
-    current = random.choice(parent1)
+    current_gene = random.choice(parent1)
 
     while len(child) < size:
-        child.append(current)
+        child.append(current_gene)
 
-        for city in edges:
-            edges[city].discard(current)
+        for gene in edges:
+            edges[gene].discard(current_gene)
 
-        if not edges[current]:
-            unused = [c for c in parent1 if c not in child]
+        if edges[current_gene]:
+            min_len = min(len(edges[gene]) for gene in edges[current_gene])
+
+            candidates = [gene for gene in edges[current_gene] if len(edges[gene]) == min_len]
+
+            current_gene = random.choice(candidates)
+        else:
+            unused = [gene for gene in parent1 if gene not in child]
 
             if unused:
-                current = random.choice(unused)
-            continue
-
-        current = min(edges[current], key=lambda x: len(edges[x]))
+                current_gene = random.choice(unused)
+            else:
+                break
 
     return child

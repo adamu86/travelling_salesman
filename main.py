@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 
 from crossover.ox import ox
 from crossover.pmx import pmx
+from crossover.erx import erx
+
 from model.TSP import TSP
 from mutation.inversion import inversion
 
@@ -84,7 +86,7 @@ def tournament_selection(population, dist_matrix, tournament_size=10):
     return selected[0]
 
 
-def genetic_algorithm(dist_matrix, pop_size=100, generations=1000, crossover_prob=1):
+def genetic_algorithm(dist_matrix, pop_size=1000, generations=1000, crossover_prob=1):
     num_cities = len(dist_matrix)
     population = initialize_population(pop_size, num_cities)
 
@@ -100,7 +102,8 @@ def genetic_algorithm(dist_matrix, pop_size=100, generations=1000, crossover_pro
 
             # krzyżowanie
             # child = pmx(parent1, parent2)
-            child = ox(parent1, parent2)
+            # child = ox(parent1, parent2)
+            child = erx(parent1, parent2)
 
             # mutacja
             child = inversion(child)
@@ -128,5 +131,5 @@ best_solution, best_length = genetic_algorithm(distances)
 print("\nNajlepsza trasa:", best_solution)
 print(f"Długość trasy: {best_length:.2f}")
 
-
+data.plot()
 data.plot(best_solution)
