@@ -80,13 +80,15 @@ def fitness(individual, dist_matrix):
     return total_distance
 
 
-def tournament_selection(population, dist_matrix, tournament_size=10):
+def tournament_selection(population, dist_matrix, tournament_size=5):
     selected = random.sample(population, tournament_size)
+
     selected.sort(key=lambda ind: fitness(ind, dist_matrix))
+
     return selected[0]
 
 
-def genetic_algorithm(dist_matrix, pop_size=1000, generations=1000, crossover_prob=1):
+def genetic_algorithm(dist_matrix, pop_size=100, generations=100, crossover_prob=1):
     num_cities = len(dist_matrix)
     population = initialize_population(pop_size, num_cities)
 

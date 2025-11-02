@@ -33,8 +33,6 @@ class TSP:
 
             plt.scatter(x_route, y_route, s=30, marker='o', color='orange')
             plt.title(f"Nodes for: {self.name}")
-            plt.xlabel("X")
-            plt.ylabel("Y")
 
             for i, (x, y) in enumerate(zip(x_route, y_route)):
                 plt.text(x, y, str(i), fontsize=8, color='black')
@@ -66,7 +64,5 @@ class TSP:
                 plt.text(node.x, node.y, str(key), fontsize=8, color='black')
 
         plt.title(f"Best route for: {self.name}")
-        plt.xlabel("X")
-        plt.ylabel("Y")
         plt.savefig(f"./output/{self.name}_result.png")
 

@@ -9,9 +9,7 @@ def pmx(parent1, parent2):
 
     child[start:end] = parent1[start:end]
 
-    mapping = {}
-    for i in range(start, end):
-        mapping[parent1[i]] = parent2[i]
+    mapping = {parent1[i]: parent2[i] for i in range(start, end)}
 
     for i in range(size):
         if child[i] is not None:
