@@ -4,8 +4,6 @@
 
 ## Punktacja
 
----
-
 #### Minimum:
 
 - ~~`[25 pkt]` Algorytm z dwoma operatorami krzyżowania i czytający dane wejściowe w formacie TSPLIB.~~ ✔️
