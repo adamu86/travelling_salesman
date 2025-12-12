@@ -8,6 +8,7 @@ from crossover.erx import erx
 
 from model.TSP import TSP
 from mutation.inversion import inversion
+from mutation.two_opt import two_opt
 
 
 def read_file_tsp(path='coords.tsp'):
@@ -88,7 +89,7 @@ def tournament_selection(population, dist_matrix, tournament_size=5):
     return selected[0]
 
 
-def genetic_algorithm(dist_matrix, pop_size=100, generations=100, crossover_prob=1):
+def genetic_algorithm(dist_matrix, pop_size=100, generations=10, crossover_prob=1):
     num_cities = len(dist_matrix)
     population = initialize_population(pop_size, num_cities)
 
@@ -109,6 +110,9 @@ def genetic_algorithm(dist_matrix, pop_size=100, generations=100, crossover_prob
 
             # mutacja
             child = inversion(child)
+
+            # algorytm memetyczny - lokalna optymalizacja
+            child = two_opt(child, dist_matrix, max_iters=20)
 
             new_population.append(child)
 
