@@ -1,4 +1,3 @@
-# do algorytmu memetycznego
 def two_opt(individual, dist_matrix, max_iters):
     best = individual
     best_distance = route_distance(best, dist_matrix)
