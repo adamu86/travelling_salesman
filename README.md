@@ -16,7 +16,7 @@
 
 - `[10 pkt]` własny generator znaków losowych i porównanie z heursytyką 2-opt. 
 
-- `[10 pkt]` algorytm memetyczny.
+- ~~`[10 pkt]` algorytm memetyczny.~~ ✔️
 
 ---
 
