@@ -14,7 +14,7 @@
 
 - ~~`[5 pkt]` trzeci operator krzyżowania 5pkt.~~ ✔️
 
-- `[10 pkt]` własny generator znaków losowych i porównanie z heursytyką 2-opt.
+- ~~`[10 pkt]` własny generator znaków losowych i porównanie z heursytyką 2-opt.~~ ✔️
 
 - `[10 pkt]` algorytm memetyczny.
 
@@ -22,7 +22,8 @@
 
 #### Bonusowo:
 
-- `[10 pkt]` algorytm memetyczny wykorzystuje heurystykę 3-opt
+- ~~`[10 pkt]` algorytm memetyczny wykorzystuje heurystykę 3-opt~~ ✔️
+
 - `[15 pkt]` algorytm memetyczny wykorzystuje heurystykę LK
 
 --- 
