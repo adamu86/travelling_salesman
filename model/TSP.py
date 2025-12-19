@@ -56,10 +56,10 @@ class TSP:
         for key, node in self.node_coords.items():
             if key == best_solution[0]:
                 plt.text(node.x, node.y, str(key), fontsize=15, color='red')
-                plt.text(node.x - 8, node.y - 20, 'START', fontsize=10, color='red')
+                plt.text(node.x - 8, node.y - 10, 'START', fontsize=10, color='red')
             elif key == best_solution[-1]:
                 plt.text(node.x, node.y, str(key), fontsize=15, color='green')
-                plt.text(node.x - 6, node.y - 20, 'END', fontsize=10, color='green')
+                plt.text(node.x - 6, node.y - 10, 'END', fontsize=10, color='green')
             else:
                 plt.text(node.x, node.y, str(key), fontsize=8, color='black')
 
