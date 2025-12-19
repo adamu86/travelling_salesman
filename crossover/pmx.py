@@ -3,25 +3,21 @@ import random
 
 def pmx(parent1, parent2):
     size = len(parent1)
-    child = [None] * size
 
     start, end = sorted(random.sample(range(size), 2))
 
-    child[start:end] = parent1[start:end]
+    offspring = [0] * size
 
-    mapping = {parent1[i]: parent2[i] for i in range(start, end)}
+    offspring[start:end] = parent1[start:end]
 
-    for i in range(size):
-        if child[i] is not None:
-            continue
+    segment = parent1[start:end]
 
-        gene = parent2[i]
+    for i in (*range(0, start), *range(end, size)):
+        candidate = parent2[i]
 
-        if gene not in child:
-            child[i] = gene
-        else:
-            while gene in mapping:
-                gene = mapping[gene]
-            child[i] = gene
+        while candidate in segment:
+            candidate = parent2[parent1.index(candidate)]
 
-    return child
+        offspring[i] = candidate
+
+    return offspring

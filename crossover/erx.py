@@ -4,40 +4,33 @@ import random
 def erx(parent1, parent2):
     size = len(parent1)
 
-    edges = {gene: set() for gene in parent1}
+    neighbors = {gene: set() for gene in parent1}
 
     for i in range(size):
-        city = parent1[i]
-        left = parent1[(i - 1) % size]
-        right = parent1[(i + 1) % size]
-        edges[city].update([left, right])
+        neighbors[parent1[i]].update([parent1[(i - 1) % size], parent1[(i + 1) % size]])
 
-        city = parent2[i]
-        left = parent2[(i - 1) % size]
-        right = parent2[(i + 1) % size]
-        edges[city].update([left, right])
+        neighbors[parent2[i]].update([parent2[(i - 1) % size], parent2[(i + 1) % size]])
 
     child = []
+
     current_gene = random.choice(parent1)
 
     while len(child) < size:
         child.append(current_gene)
 
-        for gene in edges:
-            edges[gene].discard(current_gene)
+        for gene in neighbors:
+            neighbors[gene].discard(current_gene)
 
-        if edges[current_gene]:
-            min_len = min(len(edges[gene]) for gene in edges[current_gene])
-
-            candidates = [gene for gene in edges[current_gene] if len(edges[gene]) == min_len]
-
-            current_gene = random.choice(candidates)
+        if neighbors[current_gene]:
+            next_gene = min(neighbors[current_gene], key=lambda x: len(neighbors[x]))
         else:
-            unused = [gene for gene in parent1 if gene not in child]
+            remaining_genes = [gene for gene in parent1 if gene not in child]
 
-            if unused:
-                current_gene = random.choice(unused)
+            if remaining_genes:
+                next_gene = random.choice(remaining_genes)
             else:
                 break
+
+        current_gene = next_gene
 
     return child
