@@ -26,10 +26,9 @@ def erx(parent1, parent2):
         else:
             remaining_genes = [gene for gene in parent1 if gene not in child]
 
-            if remaining_genes:
-                next_gene = random.choice(remaining_genes)
-            else:
+            if not remaining_genes:
                 break
+            next_gene = random.choice(remaining_genes)
 
         current_gene = next_gene
 
