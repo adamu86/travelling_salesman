@@ -8,6 +8,7 @@ from crossover.erx import erx
 
 from model.TSP import TSP
 from mutation.inversion import inversion
+from mutation.scramble import scramble
 from mutation.two_opt import two_opt
 from mutation.three_opt import three_opt
 from mutation.lin_kernighan_light import lin_kernighan_light
@@ -51,9 +52,7 @@ def distance_matrix(node_coords):
     for i in range(len(node_coords)):
         for j in range(len(node_coords)):
             dx = float(node_coords[i].x) - float(node_coords[j].x)
-
             dy = float(node_coords[i].y) - float(node_coords[j].y)
-
             dist_matrix[i][j] = math.sqrt(dx * dx + dy * dy)
 
     return dist_matrix
@@ -64,9 +63,7 @@ def initialize_population(population_size, num_cities):
 
     for _ in range(population_size):
         individual = list(range(num_cities))
-
         random.shuffle(individual)
-
         population.append(individual)
 
     return population
@@ -85,20 +82,77 @@ def fitness(individual, dist_matrix):
 
 def tournament_selection(population, dist_matrix, tournament_size=5):
     selected = random.sample(population, tournament_size)
-
     selected.sort(key=lambda ind: fitness(ind, dist_matrix))
-
     return selected[0]
 
 
-def genetic_algorithm(dist_matrix, pop_size=100, generations=10, crossover_prob=1):
+def genetic_algorithm(dist_matrix, 
+                     pop_size=None, 
+                     generations=None,
+                     crossover_type='erx',
+                     mutation_type='inversion',
+                     memetic_type=None,
+                     memetic_mode='all',
+                     verbose=True,
+                     convergence_window=50,
+                     convergence_threshold=0.001,
+                     max_generations=10000):
+
+    import time
+    
     num_cities = len(dist_matrix)
+    
+    if pop_size is None:
+        if memetic_type:
+            pop_size = max(50, num_cities)
+        else:
+            # czysty GA - większa populacja
+            pop_size = max(100, 2 * num_cities)
+        
+        if verbose:
+            print(f"📊 Automatyczny rozmiar populacji: {pop_size}")
+    
+    auto_stop = (generations is None)
+    if auto_stop:
+        generations = max_generations
+        if verbose:
+            print(f"🔄 Automatyczne zatrzymanie po zbieżności (max {max_generations} generacji)")
+    
     population = initialize_population(pop_size, num_cities)
+
+    crossover_fn = {
+        'pmx': pmx,
+        'ox': ox,
+        'erx': erx
+    }[crossover_type]
+    
+    mutation_fn = {
+        'inversion': inversion,
+        'scramble': scramble
+    }[mutation_type]
+    
+    memetic_fn = None
+    memetic_params = {}
+    
+    if memetic_type == '2opt':
+        memetic_fn = two_opt
+        memetic_params = {'max_iters': min(50, num_cities)}
+    elif memetic_type == '3opt':
+        memetic_fn = three_opt
+        memetic_params = {'max_iters': min(10, num_cities // 5)}
+    elif memetic_type == 'lk':
+        memetic_fn = lin_kernighan_light
+        memetic_params = {'max_outer': 3, 'two_opt_iters': 20, 'three_opt_iters': 3}
 
     best = min(population, key=lambda ind: fitness(ind, dist_matrix))
     best_distance = fitness(best, dist_matrix)
+    
+    convergence_history = [best_distance]
+    generation_times = []
 
     for gen in range(generations):
+        gen_start = time.time()
+        
         new_population = []
 
         while len(new_population) < pop_size:
@@ -106,35 +160,25 @@ def genetic_algorithm(dist_matrix, pop_size=100, generations=10, crossover_prob=
             parent2 = tournament_selection(population, dist_matrix)
 
             # krzyżowanie
-            # child = pmx(parent1, parent2)
-            # child = ox(parent1, parent2)
-            child = erx(parent1, parent2)
+            child = crossover_fn(parent1, parent2)
 
             # mutacja
-            child = inversion(child)
+            child = mutation_fn(child)
 
-            # algorytm memetyczny - 2-opt
-            # child = two_opt(child, dist_matrix, max_iters=20)
-
-            # algorytm memetyczny – heurystyka LK
-            # child = lin_kernighan_light(child, dist_matrix, max_outer=5, two_opt_iters=20, three_opt_iters=5)
+            # algorytm memetyczny
+            if memetic_fn and memetic_mode == 'all':
+                child = memetic_fn(child, dist_matrix, **memetic_params)
 
             new_population.append(child)
 
-        # aktualizacja populacji
         population = new_population
 
-        # algorytm memetyczny - 3-opt (na najlepszych 10%)
-        # population.sort(key=lambda ind: fitness(ind, dist_matrix))
-        # elite_size = max(1, int(0.1 * pop_size))
-        # for i in range(elite_size):
-            # population[i] = three_opt(population[i], dist_matrix, max_iters=3)
-
-        # algorytm memetyczny - LK light (na najlepszych 10%)
-        population.sort(key=lambda ind: fitness(ind, dist_matrix))
-        elite_size = max(1, int(0.1 * pop_size))
-        for i in range(elite_size):
-            population[i] = lin_kernighan_light(population[i], dist_matrix, max_outer=3, two_opt_iters=10, three_opt_iters=3)
+        # algorytm memetyczny - tylko dla top 10%
+        if memetic_fn and memetic_mode == 'elite':
+            population.sort(key=lambda ind: fitness(ind, dist_matrix))
+            elite_size = max(1, int(0.1 * pop_size))
+            for i in range(elite_size):
+                population[i] = memetic_fn(population[i], dist_matrix, **memetic_params)
 
         current_best = min(population, key=lambda ind: fitness(ind, dist_matrix))
         current_best_distance = fitness(current_best, dist_matrix)
@@ -142,17 +186,33 @@ def genetic_algorithm(dist_matrix, pop_size=100, generations=10, crossover_prob=
         if current_best_distance < best_distance:
             best, best_distance = current_best, current_best_distance
 
-        print(f"Generacja {gen + 1}: długość trasy = {best_distance:.2f}")
+        convergence_history.append(best_distance)
+        gen_time = time.time() - gen_start
+        generation_times.append(gen_time)
 
-    return best, best_distance
+        if verbose and (gen + 1) % max(1, generations // 20) == 0:
+            avg_time = sum(generation_times[-10:]) / len(generation_times[-10:])
+            print(f"Gen {gen + 1:4d}/{generations}: długość = {best_distance:.2f}, "
+                  f"czas/gen = {avg_time:.3f}s")
+        
+        # automatyczne zatrzymanie
+        if auto_stop and gen >= convergence_window:
+            old_best = convergence_history[gen - convergence_window + 1]
+            improvement = (old_best - best_distance) / old_best
+            
+            if improvement < convergence_threshold:
+                if verbose:
+                    print(f"\nZbieżność osiągnięta w generacji {gen + 1}")
+                    print(f"  Poprawa w ostatnich {convergence_window} generacjach: {improvement*100:.3f}%")
+                break
 
-
-data = read_file_tsp("./data/coords.tsp")
-distances = distance_matrix(data.node_coords)
-best_solution, best_length = genetic_algorithm(distances)
-
-print("\nNajlepsza trasa:", best_solution)
-print(f"Długość trasy: {best_length:.2f}")
-
-data.plot()
-data.plot(best_solution)
+    avg_gen_time = sum(generation_times) / len(generation_times) if generation_times else 0
+    
+    return {
+        'best_solution': best,
+        'best_length': best_distance,
+        'generations_run': gen + 1,
+        'convergence_history': convergence_history,
+        'time_per_generation': avg_gen_time,
+        'total_time': sum(generation_times)
+    }
