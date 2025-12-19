@@ -324,7 +324,7 @@ class TSPExperiment:
         times = [[r['total_time'] for r in results[op]] for op in operators]
         gens = [[r['generations_run'] for r in results[op]] for op in operators]
         
-        axes[0, 0].boxplot(lengths, labels=[op.upper() for op in operators])
+        axes[0, 0].boxplot(lengths, tick_labels=[op.upper() for op in operators])
         axes[0, 0].set_ylabel('Długość trasy')
         axes[0, 0].set_title(f'Jakość rozwiązań - {problem_name}')
         axes[0, 0].grid(True, alpha=0.3)
@@ -334,13 +334,13 @@ class TSPExperiment:
             axes[0, 0].legend()
         
         # boxplot czasu
-        axes[0, 1].boxplot(times, labels=[op.upper() for op in operators])
+        axes[0, 1].boxplot(times, tick_labels=[op.upper() for op in operators])
         axes[0, 1].set_ylabel('Czas [s]')
         axes[0, 1].set_title('Czas obliczeń')
         axes[0, 1].grid(True, alpha=0.3)
         
         # boxplot liczby generacji
-        axes[1, 0].boxplot(gens, labels=[op.upper() for op in operators])
+        axes[1, 0].boxplot(gens, tick_labels=[op.upper() for op in operators])
         axes[1, 0].set_ylabel('Liczba generacji')
         axes[1, 0].set_title('Zbieżność (liczba generacji do zatrzymania)')
         axes[1, 0].grid(True, alpha=0.3)
@@ -509,7 +509,6 @@ class TSPExperiment:
 if __name__ == "__main__":
     exp = TSPExperiment()
 
-    experiment_type = 'standard'  # 'quick', 'standard', 'thorough'
     
     problem_file = "./data/coords.tsp"
     known_optimal = 7542

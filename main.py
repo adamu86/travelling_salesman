@@ -170,6 +170,8 @@ def genetic_algorithm(dist_matrix,
             # mutacja
             if random.random() < mutation_prob:
                 child = mutation_fn(child)
+            else:
+                child = parent1.copy()
 
             # algorytm memetyczny
             if memetic_fn and memetic_mode == 'all':
