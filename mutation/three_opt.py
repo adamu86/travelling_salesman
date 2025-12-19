@@ -1,4 +1,4 @@
-def three_opt(route, dist_matrix, max_iters=5):
+def three_opt(route, dist_matrix, max_iters):
     best = route[:]
     best_dist = route_distance(best, dist_matrix)
     n = len(route)

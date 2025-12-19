@@ -10,6 +10,7 @@ from model.TSP import TSP
 from mutation.inversion import inversion
 from mutation.two_opt import two_opt
 from mutation.three_opt import three_opt
+from mutation.lin_kernighan_light import lin_kernighan_light
 
 
 def read_file_tsp(path='coords.tsp'):
@@ -113,7 +114,10 @@ def genetic_algorithm(dist_matrix, pop_size=100, generations=10, crossover_prob=
             child = inversion(child)
 
             # algorytm memetyczny - 2-opt
-            child = two_opt(child, dist_matrix, max_iters=20)
+            # child = two_opt(child, dist_matrix, max_iters=20)
+
+            # algorytm memetyczny – heurystyka LK
+            # child = lin_kernighan_light(child, dist_matrix, max_outer=5, two_opt_iters=20, three_opt_iters=5)
 
             new_population.append(child)
 
@@ -121,10 +125,16 @@ def genetic_algorithm(dist_matrix, pop_size=100, generations=10, crossover_prob=
         population = new_population
 
         # algorytm memetyczny - 3-opt (na najlepszych 10%)
+        # population.sort(key=lambda ind: fitness(ind, dist_matrix))
+        # elite_size = max(1, int(0.1 * pop_size))
+        # for i in range(elite_size):
+            # population[i] = three_opt(population[i], dist_matrix, max_iters=3)
+
+        # algorytm memetyczny - LK light (na najlepszych 10%)
         population.sort(key=lambda ind: fitness(ind, dist_matrix))
         elite_size = max(1, int(0.1 * pop_size))
         for i in range(elite_size):
-            population[i] = three_opt(population[i], dist_matrix, max_iters=3)
+            population[i] = lin_kernighan_light(population[i], dist_matrix, max_outer=3, two_opt_iters=10, three_opt_iters=3)
 
         current_best = min(population, key=lambda ind: fitness(ind, dist_matrix))
         current_best_distance = fitness(current_best, dist_matrix)
