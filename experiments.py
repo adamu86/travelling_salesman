@@ -1,10 +1,16 @@
 import json
 import time
 import csv
+import random
+import numpy as np
 from pathlib import Path
 from main import read_file_tsp, distance_matrix, genetic_algorithm
 import matplotlib.pyplot as plt
-import numpy as np
+
+# SEED dla powtarzalności eksperymentów
+RANDOM_SEED = 42
+random.seed(RANDOM_SEED)
+np.random.seed(RANDOM_SEED)
 
 class TSPExperiment:
     def __init__(self, output_dir="results"):
@@ -17,27 +23,37 @@ class TSPExperiment:
                 'pop_size': max(50, num_cities),
                 'generations': None,
                 'convergence_window': 50,
-                'convergence_threshold': 0.01,  # 1%
-                'max_generations': 500
+                'convergence_threshold': 0.01,
+                'max_generations': 500,
+                'crossover_prob': 0.9,
+                'mutation_prob': 0.1
             }
         elif experiment_type == 'standard':
             return {
                 'pop_size': max(100, 2 * num_cities),
                 'generations': None,
                 'convergence_window': 100,
-                'convergence_threshold': 0.001,  # 0.1%
-                'max_generations': 2000
+                'convergence_threshold': 0.001,
+                'max_generations': 2000,
+                'crossover_prob': 0.9,
+                'mutation_prob': 0.1
             }
         elif experiment_type == 'thorough':
             return {
                 'pop_size': max(200, 3 * num_cities),
                 'generations': None,
                 'convergence_window': 200,
-                'convergence_threshold': 0.0005,  # 0.05%
-                'max_generations': 5000
+                'convergence_threshold': 0.0005,
+                'max_generations': 5000,
+                'crossover_prob': 0.9,
+                'mutation_prob': 0.1
             }
         
-    def run_single_experiment(self, dist_matrix, config, known_optimal=None):
+    def run_single_experiment(self, dist_matrix, config, known_optimal=None, seed=None):
+        if seed is not None:
+            random.seed(seed)
+            np.random.seed(seed)
+        
         num_cities = len(dist_matrix)
         
         base_config = self.get_smart_config(
@@ -53,6 +69,8 @@ class TSPExperiment:
             generations=run_config.get('generations'),
             crossover_type=run_config['crossover'],
             mutation_type=run_config['mutation'],
+            crossover_prob=run_config.get('crossover_prob', 0.9),
+            mutation_prob=run_config.get('mutation_prob', 0.1),
             memetic_type=run_config.get('memetic'),
             memetic_mode=run_config.get('memetic_mode', 'all'),
             verbose=False,
@@ -62,6 +80,7 @@ class TSPExperiment:
         )
         
         result['config'] = run_config
+        result['seed'] = seed
         
         if known_optimal:
             result['error_percent'] = ((result['best_length'] - known_optimal) / known_optimal) * 100
@@ -72,6 +91,7 @@ class TSPExperiment:
         print("\n" + "="*80)
         print("EKSPERYMENT 1: Porównanie operatorów krzyżowania")
         print("="*80)
+        print(f"SEED = {RANDOM_SEED} (dla powtarzalności wyników)")
         
         data = read_file_tsp(problem_file)
         dist_matrix = distance_matrix(data.node_coords)
@@ -85,6 +105,8 @@ class TSPExperiment:
         print(f"\nParametry:")
         print(f"  Rozmiar populacji: {smart_config['pop_size']}")
         print(f"  Max generacji: {smart_config['max_generations']}")
+        print(f"  P(krzyżowanie): {smart_config['crossover_prob']}")
+        print(f"  P(mutacja): {smart_config['mutation_prob']}")
         print(f"  Okno zbieżności: {smart_config['convergence_window']}")
         print(f"  Próg zbieżności: {smart_config['convergence_threshold']*100}%")
         print(f"  Powtórzenia: {runs}")
@@ -95,7 +117,8 @@ class TSPExperiment:
         for operator in operators:
             print(f"\n--- Testowanie operatora: {operator.upper()}")
             for run in range(runs):
-                print(f"  Run {run+1}/{runs}...", end=' ', flush=True)
+                run_seed = RANDOM_SEED + run * 1000 + hash(operator) % 1000
+                print(f"  Run {run+1}/{runs} (seed={run_seed})...", end=' ', flush=True)
                 
                 config = {
                     'crossover': operator,
@@ -104,7 +127,7 @@ class TSPExperiment:
                     'experiment_type': experiment_type
                 }
                 
-                result = self.run_single_experiment(dist_matrix, config, known_optimal)
+                result = self.run_single_experiment(dist_matrix, config, known_optimal, seed=run_seed)
                 results[operator].append(result)
                 
                 error_str = f"(błąd: {result['error_percent']:.2f}%)" if known_optimal else ""
@@ -118,6 +141,7 @@ class TSPExperiment:
         print("\n" + "="*80)
         print("EKSPERYMENT 2: Porównanie z heurystykami lokalnymi")
         print("="*80)
+        print(f"🎲 SEED = {RANDOM_SEED}")
         
         data = read_file_tsp(problem_file)
         dist_matrix = distance_matrix(data.node_coords)
@@ -128,11 +152,10 @@ class TSPExperiment:
         
         from mutation.two_opt import two_opt, route_distance
         from mutation.three_opt import three_opt
-        import random
         
         results = {}
         
-        # 1. Czysty GA
+        # 1. GA
         print("\n--- 1. Czysty algorytm genetyczny...")
         config = {
             'crossover': 'erx',
@@ -140,11 +163,12 @@ class TSPExperiment:
             'memetic': None,
             'experiment_type': experiment_type
         }
-        results['GA'] = self.run_single_experiment(dist_matrix, config, known_optimal)
+        results['GA'] = self.run_single_experiment(dist_matrix, config, known_optimal, seed=RANDOM_SEED)
         print(f"   Długość: {results['GA']['best_length']:.2f} w {results['GA']['generations_run']} gen")
         
-        # 2. Heurystyka 2-opt (wielokrotnie z losowego startu)
+        # 2. heurystyka 2-opt (wielokrotnie z losowego startu)
         print("\n--- 2. Heurystyka 2-opt (10 prób z losowego startu)...")
+        random.seed(RANDOM_SEED)
         best_2opt = float('inf')
         best_solution_2opt = None
         start_time = time.time()
@@ -169,8 +193,9 @@ class TSPExperiment:
         
         print(f"   Długość: {best_2opt:.2f} w {time_2opt:.2f}s")
         
-        # 3. Heurystyka 3-opt
+        # 3. heurystyka 3-opt
         print("\n--- 3. Heurystyka 3-opt (10 prób z losowego startu)...")
+        random.seed(RANDOM_SEED)
         best_3opt = float('inf')
         best_solution_3opt = None
         start_time = time.time()
@@ -202,6 +227,7 @@ class TSPExperiment:
         print("\n" + "="*80)
         print("EKSPERYMENT 3: Algorytmy memetyczne")
         print("="*80)
+        print(f"SEED = {RANDOM_SEED}")
         
         data = read_file_tsp(problem_file)
         dist_matrix = distance_matrix(data.node_coords)
@@ -222,7 +248,8 @@ class TSPExperiment:
         for variant in variants:
             print(f"\n▶ Testowanie: {variant['name']}")
             for run in range(runs):
-                print(f"  Run {run+1}/{runs}...", end=' ', flush=True)
+                run_seed = RANDOM_SEED + run * 1000 + hash(variant['name']) % 1000
+                print(f"  Run {run+1}/{runs} (seed={run_seed})...", end=' ', flush=True)
                 
                 config = {
                     'crossover': 'erx',
@@ -235,7 +262,7 @@ class TSPExperiment:
                 if variant['memetic']:
                     config['max_generations'] = 1000
                 
-                result = self.run_single_experiment(dist_matrix, config, known_optimal)
+                result = self.run_single_experiment(dist_matrix, config, known_optimal, seed=run_seed)
                 results[variant['name']].append(result)
                 
                 error_str = f"(błąd: {result['error_percent']:.2f}%)" if known_optimal else ""
@@ -273,18 +300,20 @@ class TSPExperiment:
         csv_file = self.output_dir / f"crossover_comparison_{problem_name}.csv"
         with open(csv_file, 'w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(['Operator', 'Run', 'Best_Length', 'Generations', 'Time', 'Error_%'])
+            writer.writerow(['Operator', 'Run', 'Best_Length', 'Generations', 'Time', 'Error_%', 'Seed'])
             
             for operator, runs in results.items():
                 for i, result in enumerate(runs):
                     error = result.get('error_percent', '')
+                    seed = result.get('seed', '')
                     writer.writerow([
                         operator, 
                         i+1, 
                         f"{result['best_length']:.2f}",
                         result['generations_run'],
                         f"{result['total_time']:.2f}",
-                        f"{error:.2f}" if error else ''
+                        f"{error:.2f}" if error else '',
+                        seed
                     ])
         
         # wykresy
@@ -295,8 +324,7 @@ class TSPExperiment:
         times = [[r['total_time'] for r in results[op]] for op in operators]
         gens = [[r['generations_run'] for r in results[op]] for op in operators]
         
-        # boxplot długości tras
-        bp1 = axes[0, 0].boxplot(lengths, labels=[op.upper() for op in operators])
+        axes[0, 0].boxplot(lengths, labels=[op.upper() for op in operators])
         axes[0, 0].set_ylabel('Długość trasy')
         axes[0, 0].set_title(f'Jakość rozwiązań - {problem_name}')
         axes[0, 0].grid(True, alpha=0.3)
@@ -406,18 +434,20 @@ class TSPExperiment:
         csv_file = self.output_dir / f"memetic_comparison_{problem_name}.csv"
         with open(csv_file, 'w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(['Algorithm', 'Run', 'Best_Length', 'Generations', 'Time', 'Error_%'])
+            writer.writerow(['Algorithm', 'Run', 'Best_Length', 'Generations', 'Time', 'Error_%', 'Seed'])
             
             for alg_name, runs in results.items():
                 for i, result in enumerate(runs):
                     error = result.get('error_percent', '')
+                    seed = result.get('seed', '')
                     writer.writerow([
                         alg_name,
                         i+1,
                         f"{result['best_length']:.2f}",
                         result['generations_run'],
                         f"{result['total_time']:.2f}",
-                        f"{error:.2f}" if error else ''
+                        f"{error:.2f}" if error else '',
+                        seed
                     ])
         
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
@@ -475,12 +505,12 @@ class TSPExperiment:
         
         print(f"\nWyniki zapisano")
 
+
 if __name__ == "__main__":
     exp = TSPExperiment()
 
-    experiment_type = 'thorough'
+    experiment_type = 'standard'  # 'quick', 'standard', 'thorough'
     
-    # berlin52 - znane optimum: 7542
     problem_file = "./data/coords.tsp"
     known_optimal = 7542
     

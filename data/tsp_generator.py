@@ -1,8 +1,6 @@
-# generator/tsp_generator.py
 import random
 import math
 from pathlib import Path
-
 
 def generate_random_tsp(num_cities, min_coord=0, max_coord=1000, seed=None):
     if seed is not None:

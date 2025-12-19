@@ -91,6 +91,8 @@ def genetic_algorithm(dist_matrix,
                      generations=None,
                      crossover_type='erx',
                      mutation_type='inversion',
+                     crossover_prob=0.9,
+                     mutation_prob=0.1,
                      memetic_type=None,
                      memetic_mode='all',
                      verbose=True,
@@ -106,17 +108,17 @@ def genetic_algorithm(dist_matrix,
         if memetic_type:
             pop_size = max(50, num_cities)
         else:
-            # czysty GA - większa populacja
             pop_size = max(100, 2 * num_cities)
         
         if verbose:
-            print(f"📊 Automatyczny rozmiar populacji: {pop_size}")
+            print(f"Automatyczny rozmiar populacji: {pop_size}")
     
     auto_stop = (generations is None)
     if auto_stop:
         generations = max_generations
         if verbose:
-            print(f"🔄 Automatyczne zatrzymanie po zbieżności (max {max_generations} generacji)")
+            print(f"Automatyczne zatrzymanie po zbieżności (max {max_generations} generacji)")
+            print(f"P(krzyżowanie) = {crossover_prob:.2f}, P(mutacja) = {mutation_prob:.2f}")
     
     population = initialize_population(pop_size, num_cities)
 
@@ -160,10 +162,14 @@ def genetic_algorithm(dist_matrix,
             parent2 = tournament_selection(population, dist_matrix)
 
             # krzyżowanie
-            child = crossover_fn(parent1, parent2)
+            if random.random() < crossover_prob:
+                child = crossover_fn(parent1, parent2)
+            else:
+                child = parent1.copy()
 
             # mutacja
-            child = mutation_fn(child)
+            if random.random() < mutation_prob:
+                child = mutation_fn(child)
 
             # algorytm memetyczny
             if memetic_fn and memetic_mode == 'all':
