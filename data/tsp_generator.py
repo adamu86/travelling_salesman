@@ -79,7 +79,7 @@ if __name__ == "__main__":
         coords_random = generate_random_tsp(size, seed=42)
         save_tsp_file(
             coords_random, 
-            f"./data/generated/random_{size}.tsp",
+            f"./generated/random_{size}.tsp",
             name=f"Random {size}",
             comment=f"Randomly generated {size} cities"
         )
@@ -92,10 +92,8 @@ if __name__ == "__main__":
         )
         save_tsp_file(
             coords_clustered,
-            f"./data/generated/clustered_{size}.tsp",
+            f"./generated/clustered_{size}.tsp",
             name=f"Clustered {size}",
             comment=f"Clustered {size} cities"
         )
         print(f"Wygenerowano: clustered_{size}.tsp")
-    
-    print("\nPliki zapisane w ./data/generated/")

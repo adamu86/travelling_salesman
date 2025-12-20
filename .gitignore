@@ -1,2 +1,7 @@
 /output
-/output
+
+/__pycache__
+/crossover/__pycache__
+/mutation/__pycache__
+/model/__pycache__
+/results

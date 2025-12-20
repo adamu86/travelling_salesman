@@ -433,8 +433,7 @@ class TSPExperiment:
         times = [[r['total_time'] for r in results[m]] for m in methods]
         gens = [[r['generations_run'] for r in results[m]] for m in methods]
         
-        # Boxplot długości
-        axes[0, 0].boxplot(lengths, labels=methods)
+        axes[0, 0].boxplot(lengths, tick_labels=[op.upper() for op in operators])
         axes[0, 0].set_ylabel('Długość trasy')
         axes[0, 0].set_title(f'Jakość rozwiązań - {problem_name}')
         axes[0, 0].grid(True, alpha=0.3)
@@ -445,15 +444,15 @@ class TSPExperiment:
                               label='Optimum', linewidth=2)
             axes[0, 0].legend()
         
-        # Boxplot czasu
-        axes[0, 1].boxplot(times, labels=methods)
+        # boxplot czasu
+        axes[0, 1].boxplot(times, tick_labels=[op.upper() for op in operators])
         axes[0, 1].set_ylabel('Czas [s]')
         axes[0, 1].set_title('Czas obliczeń')
         axes[0, 1].grid(True, alpha=0.3)
         axes[0, 1].tick_params(axis='x', rotation=45, labelsize=8)
         
-        # Boxplot generacji
-        axes[1, 0].boxplot(gens, labels=methods)
+        # boxplot liczby generacji
+        axes[1, 0].boxplot(gens, tick_labels=[op.upper() for op in operators])
         axes[1, 0].set_ylabel('Liczba generacji')
         axes[1, 0].set_title('Zbieżność')
         axes[1, 0].grid(True, alpha=0.3)
@@ -509,12 +508,12 @@ class TSPExperiment:
         # Wykresy
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
         
-        methods = list(results.keys())
-        lengths = [[r['best_length'] for r in results[m]] for m in methods]
-        times = [[r['total_time'] for r in results[m]] for m in methods]
+        alg_names = list(results.keys())
+        lengths = [[r['best_length'] for r in results[alg]] for alg in alg_names]
+        times = [[r['total_time'] for r in results[alg]] for alg in alg_names]
+        gens = [[r['generations_run'] for r in results[alg]] for alg in alg_names]
         
-        # Boxplot długości
-        axes[0, 0].boxplot(lengths, labels=methods)
+        axes[0, 0].boxplot(lengths, tick_labels=alg_names)
         axes[0, 0].set_ylabel('Długość trasy')
         axes[0, 0].set_title(f'Jakość rozwiązań - {problem_name}')
         axes[0, 0].grid(True, alpha=0.3)
@@ -525,19 +524,16 @@ class TSPExperiment:
                               label='Optimum', linewidth=2)
             axes[0, 0].legend()
         
-        # Boxplot czasu
-        axes[0, 1].boxplot(times, labels=methods)
+        axes[0, 1].boxplot(times, tick_labels=alg_names)
         axes[0, 1].set_ylabel('Czas [s]')
         axes[0, 1].set_title('Czas obliczeń')
         axes[0, 1].grid(True, alpha=0.3)
         axes[0, 1].tick_params(axis='x', rotation=15)
         
-        # Wykres słupkowy średnich
-        avg_lengths = [np.mean([r['best_length'] for r in results[m]]) for m in methods]
-        axes[1, 0].bar(methods, avg_lengths)
-        axes[1, 0].set_ylabel('Średnia długość trasy')
-        axes[1, 0].set_title('Średnie wyniki')
-        axes[1, 0].grid(True, alpha=0.3, axis='y')
+        axes[1, 0].boxplot(gens, tick_labels=alg_names)
+        axes[1, 0].set_ylabel('Liczba generacji')
+        axes[1, 0].set_title('Zbieżność')
+        axes[1, 0].grid(True, alpha=0.3)
         axes[1, 0].tick_params(axis='x', rotation=15)
         
         if known_optimal:
@@ -584,7 +580,7 @@ if __name__ == "__main__":
     
     exp = TSPExperiment()
 
-    experiment_type = 'standard'  # 'quick', 'standard', 'thorough'
+    experiment_type = "quick"
     
     # problem_file = "./data/coords.tsp"
     # known_optimal = 7542

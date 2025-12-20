@@ -15,7 +15,7 @@ from heuristics.three_opt import three_opt
 from heuristics.lin_kernighan_light import lin_kernighan_light
 
 
-def read_file_tsp(path='coords.tsp'):
+def read_file_tsp(path='./data/original/berlin52.tsp'):
     tsp = TSP()
 
     with open(path, 'r') as file:
@@ -207,6 +207,8 @@ def genetic_algorithm(dist_matrix,
                     child = mutation_fn(child, progress=progress)
                 else:
                     child = mutation_fn(child)
+            else:
+                child = parent1.copy()
 
             # Algorytm memetyczny - stosuj dla każdego osobnika
             if memetic_fn and memetic_mode == 'all':
