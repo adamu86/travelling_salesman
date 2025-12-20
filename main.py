@@ -9,13 +9,12 @@ from crossover.erx import erx
 from model.TSP import TSP
 from mutation.inversion import inversion
 from mutation.scramble import scramble
-
 from heuristics.two_opt import two_opt
 from heuristics.three_opt import three_opt
 from heuristics.lin_kernighan_light import lin_kernighan_light
 
 
-def read_file_tsp(path='./data/original/berlin52.tsp'):
+def read_file_tsp(path='coords.tsp'):
     tsp = TSP()
 
     with open(path, 'r') as file:
@@ -197,20 +196,18 @@ def genetic_algorithm(dist_matrix,
             else:
                 child = parent1.copy()
 
-            # MUTACJA - losuj operator przy każdym wywołaniu
+            # mutacja
             if random.random() < mutation_prob:
                 mutation_name = random.choice(available_mutations)
                 mutation_fn = mutation_operators[mutation_name]
                 
-                # Specjalna obsługa dla scramble z adaptive
+                # scramble z adaptive
                 if mutation_name == 'scramble':
                     child = mutation_fn(child, progress=progress)
                 else:
                     child = mutation_fn(child)
-            else:
-                child = parent1.copy()
 
-            # Algorytm memetyczny - stosuj dla każdego osobnika
+            # algorytm memetyczny
             if memetic_fn and memetic_mode == 'all':
                 child = memetic_fn(child, dist_matrix, **memetic_params)
 
@@ -218,7 +215,7 @@ def genetic_algorithm(dist_matrix,
 
         population = new_population
 
-        # Algorytm memetyczny - tylko dla elity (top 10%)
+        # algorytm memetyczny dla elity (top 10%)
         if memetic_fn and memetic_mode == 'elite':
             population.sort(key=lambda ind: fitness(ind, dist_matrix))
             elite_size = max(1, int(0.1 * pop_size))
@@ -240,7 +237,7 @@ def genetic_algorithm(dist_matrix,
             print(f"Gen {gen + 1:4d}/{generations}: długość = {best_distance:.2f}, "
                   f"czas/gen = {avg_time:.3f}s")
         
-        # Automatyczne zatrzymanie
+        # automatyczne zatrzymanie
         if auto_stop and gen >= convergence_window:
             old_best = convergence_history[gen - convergence_window + 1]
             improvement = (old_best - best_distance) / old_best

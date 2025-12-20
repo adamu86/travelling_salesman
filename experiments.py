@@ -183,9 +183,9 @@ class TSPExperiment:
         if known_optimal:
             print(f"Znane optimum: {known_optimal}")
         
-        from mutation.two_opt import two_opt, route_distance
-        from mutation.three_opt import three_opt
-        from mutation.lin_kernighan_light import lin_kernighan_light
+        from heuristics.two_opt import two_opt, route_distance
+        from heuristics.three_opt import three_opt
+        from heuristics.lin_kernighan_light import lin_kernighan_light
         
         results = {}
         
@@ -406,6 +406,7 @@ class TSPExperiment:
         print(f"{'='*80}\n")
     
     def _save_and_plot_combinations(self, results, problem_name, known_optimal, filename):
+        """POPRAWIONA WERSJA - używa 'methods' zamiast 'operators'"""
         csv_file = self.output_dir / f"{filename}_{problem_name}.csv"
         with open(csv_file, 'w', newline='') as f:
             writer = csv.writer(f)
@@ -425,7 +426,7 @@ class TSPExperiment:
                         seed
                     ])
         
-        # Wykresy
+        # wykresy
         fig, axes = plt.subplots(2, 2, figsize=(16, 12))
         
         methods = list(results.keys())
@@ -433,7 +434,8 @@ class TSPExperiment:
         times = [[r['total_time'] for r in results[m]] for m in methods]
         gens = [[r['generations_run'] for r in results[m]] for m in methods]
         
-        axes[0, 0].boxplot(lengths, tick_labels=[op.upper() for op in operators])
+        # boxplot długości
+        axes[0, 0].boxplot(lengths, labels=methods)
         axes[0, 0].set_ylabel('Długość trasy')
         axes[0, 0].set_title(f'Jakość rozwiązań - {problem_name}')
         axes[0, 0].grid(True, alpha=0.3)
@@ -445,20 +447,20 @@ class TSPExperiment:
             axes[0, 0].legend()
         
         # boxplot czasu
-        axes[0, 1].boxplot(times, tick_labels=[op.upper() for op in operators])
+        axes[0, 1].boxplot(times, labels=methods)
         axes[0, 1].set_ylabel('Czas [s]')
         axes[0, 1].set_title('Czas obliczeń')
         axes[0, 1].grid(True, alpha=0.3)
         axes[0, 1].tick_params(axis='x', rotation=45, labelsize=8)
         
         # boxplot liczby generacji
-        axes[1, 0].boxplot(gens, tick_labels=[op.upper() for op in operators])
+        axes[1, 0].boxplot(gens, labels=methods)
         axes[1, 0].set_ylabel('Liczba generacji')
         axes[1, 0].set_title('Zbieżność')
         axes[1, 0].grid(True, alpha=0.3)
         axes[1, 0].tick_params(axis='x', rotation=45, labelsize=8)
         
-        # Wykres zbieżności
+        # wykres zbieżności
         for method in methods:
             max_len = max(len(r['convergence_history']) for r in results[method])
             histories = []
@@ -488,6 +490,7 @@ class TSPExperiment:
         print(f"✅ Wyniki zapisano do {csv_file}")
     
     def _save_and_plot_comparison(self, results, problem_name, known_optimal, filename):
+        """POPRAWIONA WERSJA - używa alg_names konsekwentnie"""
         csv_file = self.output_dir / f"{filename}_{problem_name}.csv"
         with open(csv_file, 'w', newline='') as f:
             writer = csv.writer(f)
@@ -513,7 +516,8 @@ class TSPExperiment:
         times = [[r['total_time'] for r in results[alg]] for alg in alg_names]
         gens = [[r['generations_run'] for r in results[alg]] for alg in alg_names]
         
-        axes[0, 0].boxplot(lengths, tick_labels=alg_names)
+        # Boxplot długości
+        axes[0, 0].boxplot(lengths, labels=alg_names)
         axes[0, 0].set_ylabel('Długość trasy')
         axes[0, 0].set_title(f'Jakość rozwiązań - {problem_name}')
         axes[0, 0].grid(True, alpha=0.3)
@@ -524,36 +528,33 @@ class TSPExperiment:
                               label='Optimum', linewidth=2)
             axes[0, 0].legend()
         
-        axes[0, 1].boxplot(times, tick_labels=alg_names)
+        # Boxplot czasu
+        axes[0, 1].boxplot(times, labels=alg_names)
         axes[0, 1].set_ylabel('Czas [s]')
         axes[0, 1].set_title('Czas obliczeń')
         axes[0, 1].grid(True, alpha=0.3)
         axes[0, 1].tick_params(axis='x', rotation=15)
         
-        axes[1, 0].boxplot(gens, tick_labels=alg_names)
+        # Boxplot generacji
+        axes[1, 0].boxplot(gens, labels=alg_names)
         axes[1, 0].set_ylabel('Liczba generacji')
         axes[1, 0].set_title('Zbieżność')
         axes[1, 0].grid(True, alpha=0.3)
         axes[1, 0].tick_params(axis='x', rotation=15)
         
-        if known_optimal:
-            axes[1, 0].axhline(y=known_optimal, color='r', linestyle='--', 
-                              label='Optimum', linewidth=2)
-            axes[1, 0].legend()
-        
         # Wykres zbieżności
-        for method in methods:
-            if 'convergence_history' in results[method][0]:
-                max_len = max(len(r['convergence_history']) for r in results[method])
+        for alg in alg_names:  # POPRAWKA: używamy alg_names zamiast methods
+            if 'convergence_history' in results[alg][0]:
+                max_len = max(len(r['convergence_history']) for r in results[alg])
                 histories = []
-                for r in results[method]:
+                for r in results[alg]:
                     hist = r['convergence_history'][:]
                     while len(hist) < max_len:
                         hist.append(hist[-1])
                     histories.append(hist)
                 
                 avg_history = np.mean(histories, axis=0)
-                axes[1, 1].plot(avg_history, label=method, linewidth=2, alpha=0.7)
+                axes[1, 1].plot(avg_history, label=alg, linewidth=2, alpha=0.7)
         
         if known_optimal:
             axes[1, 1].axhline(y=known_optimal, color='r', linestyle='--', 
@@ -580,33 +581,33 @@ if __name__ == "__main__":
     
     exp = TSPExperiment()
 
-    experiment_type = "quick"
+    experiment_type = "standard"
     
     # problem_file = "./data/coords.tsp"
     # known_optimal = 7542
 
-    problem_file = "./data/eil51.tsp"
+    problem_file = "./data/original/eil51.tsp"
     known_optimal = 426
     
     # ========================================================================
     # EKSPERYMENT 1: Wszystkie kombinacje operatorów (6 + 1 losowa)
     # ========================================================================
-    #exp.experiment_1_ga_combinations(
-        #problem_file, 
-        #known_optimal=known_optimal, 
-        #runs=5,
-        #experiment_type=experiment_type
-    #)
+    exp.experiment_1_ga_combinations(
+        problem_file, 
+        known_optimal=known_optimal, 
+        runs=5,
+        experiment_type=experiment_type
+    )
     
     # ========================================================================
     # EKSPERYMENT 2: GA (bazowy) vs Heurystyki (2-opt, 3-opt, LK)
     # ========================================================================
-    #exp.experiment_2_ga_vs_heuristics(
-        #problem_file,
-        #known_optimal=known_optimal,
-        #runs=5,
-        #experiment_type=experiment_type
-    #)
+    # exp.experiment_2_ga_vs_heuristics(
+    #     problem_file,
+    #     known_optimal=known_optimal,
+    #     runs=5,
+    #     experiment_type=experiment_type
+    # )
     
     # ========================================================================
     # EKSPERYMENT 3: GA (bazowy) vs Algorytmy memetyczne
