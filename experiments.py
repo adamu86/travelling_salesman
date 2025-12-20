@@ -112,15 +112,12 @@ class TSPExperiment:
         print(f"\nParametry:")
         print(f"  Rozmiar populacji: {smart_config['pop_size']}")
         print(f"  Max generacji: {smart_config['max_generations']}")
-        print(f"  P(krzyżowanie): {smart_config['crossover_prob']}")
-        print(f"  P(mutacja): {smart_config['mutation_prob']}")
         print(f"  Powtórzenia: {runs}")
         
-        # Wszystkie kombinacje: 3 crossover x 2 mutation = 6 + 1 losowa
+        # wszystkie kombinacje: 3 crossover x 2 mutation = 6 + 1 losowa
         crossover_ops = ['pmx', 'ox', 'erx']
         mutation_ops = ['inversion', 'scramble']
-        
-        # Generuj wszystkie kombinacje
+
         combinations = []
         for cross in crossover_ops:
             for mut in mutation_ops:
@@ -130,7 +127,6 @@ class TSPExperiment:
                     'mutation': mut
                 })
         
-        # Dodaj wariant losowy
         combinations.append({
             'name': 'RANDOM',
             'crossover': 'all',
