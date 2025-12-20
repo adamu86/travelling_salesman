@@ -224,3 +224,16 @@ def genetic_algorithm(dist_matrix,
         'time_per_generation': avg_gen_time,
         'total_time': sum(generation_times)
     }
+
+if __name__ == "__main__":
+    data = read_file_tsp('./data/original/berlin52.tsp')
+
+    ga = genetic_algorithm(distance_matrix(data.node_coords))
+
+    print("\nNajlepsza trasa:", ga['best_solution'])
+
+    print(f"Długość trasy: {ga['best_length']:.2f}")
+
+    data.plot()
+
+    data.plot(ga['best_solution'])

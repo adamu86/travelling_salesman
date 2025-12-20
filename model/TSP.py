@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt
 from model.Node import Node
+from pathlib import Path
 
 
 class TSP:
@@ -37,6 +38,8 @@ class TSP:
             for i, (x, y) in enumerate(zip(x_route, y_route)):
                 plt.text(x, y, str(i), fontsize=8, color='black')
 
+            Path("./output").mkdir(parents=True, exist_ok=True)
+
             plt.savefig(f"./output/{self.name}_nodes.png")
 
             return
@@ -56,12 +59,14 @@ class TSP:
         for key, node in self.node_coords.items():
             if key == best_solution[0]:
                 plt.text(node.x, node.y, str(key), fontsize=15, color='red')
-                plt.text(node.x - 8, node.y - 10, 'START', fontsize=10, color='red')
+                plt.text(node.x - 8, node.y - 20, 'START', fontsize=10, color='red')
             elif key == best_solution[-1]:
                 plt.text(node.x, node.y, str(key), fontsize=15, color='green')
-                plt.text(node.x - 6, node.y - 10, 'END', fontsize=10, color='green')
+                plt.text(node.x - 6, node.y - 20, 'END', fontsize=10, color='green')
             else:
                 plt.text(node.x, node.y, str(key), fontsize=8, color='black')
+
+        Path("./output").mkdir(parents=True, exist_ok=True)
 
         plt.title(f"Best route for: {self.name}")
         plt.savefig(f"./output/{self.name}_result.png")
