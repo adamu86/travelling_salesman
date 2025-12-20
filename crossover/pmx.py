@@ -10,7 +10,7 @@ def pmx(parent1, parent2):
 
     child[start:end] = parent1[start:end]
 
-    segment = parent1[start:end]
+    segment = set(parent1[start:end])
 
     for i in (*range(0, start), *range(end, size)):
         gene = parent2[i]

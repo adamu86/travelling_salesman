@@ -73,7 +73,7 @@ def generate_clustered_tsp(num_cities, num_clusters=5, cluster_radius=100, clust
     return coords
 
 if __name__ == "__main__":
-    sizes = [20, 50, 100, 200]
+    sizes = [50, 100, 200]
     
     for size in sizes:
         coords_random = generate_random_tsp(size, seed=42)
@@ -98,4 +98,4 @@ if __name__ == "__main__":
         )
         print(f"Wygenerowano: clustered_{size}.tsp")
     
-    print("\nGotowe! Pliki zapisane w ./data/generated/")
+    print("\nPliki zapisane w ./data/generated/")
