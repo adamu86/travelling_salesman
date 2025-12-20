@@ -1,6 +1,7 @@
 import random
 import math
-import matplotlib.pyplot as plt
+
+import numpy as np
 
 from crossover.ox import ox
 from crossover.pmx import pmx
@@ -100,13 +101,7 @@ def genetic_algorithm(dist_matrix,
                      convergence_window=50,
                      convergence_threshold=0.001,
                      max_generations=10000):
-    """
-    Algorytm genetyczny z możliwością używania wielu operatorów.
-    
-    Args:
-        crossover_type: 'pmx', 'ox', 'erx', lub 'all' (losowy wybór)
-        mutation_type: 'inversion', 'scramble', lub 'all' (losowy wybór)
-    """
+
     import time
     
     num_cities = len(dist_matrix)
@@ -116,48 +111,34 @@ def genetic_algorithm(dist_matrix,
             pop_size = max(50, num_cities)
         else:
             pop_size = max(100, 2 * num_cities)
-        
-        if verbose:
-            print(f"Automatyczny rozmiar populacji: {pop_size}")
     
     auto_stop = (generations is None)
     if auto_stop:
         generations = max_generations
-        if verbose:
-            print(f"Automatyczne zatrzymanie po zbieżności (max {max_generations} generacji)")
-            print(f"P(krzyżowanie) = {crossover_prob:.2f}, P(mutacja) = {mutation_prob:.2f}")
     
     population = initialize_population(pop_size, num_cities)
 
-    # Słownik wszystkich operatorów krzyżowania
     crossover_operators = {
         'pmx': pmx,
         'ox': ox,
         'erx': erx
     }
-    
-    # Słownik wszystkich operatorów mutacji
+
     mutation_operators = {
         'inversion': inversion,
         'scramble': scramble
     }
-    
-    # Wybór operatorów do użycia
+
     if crossover_type == 'all':
         available_crossovers = list(crossover_operators.keys())
-        if verbose:
-            print(f"Używam wszystkich operatorów krzyżowania: {available_crossovers}")
     else:
         available_crossovers = [crossover_type]
-    
+
     if mutation_type == 'all':
         available_mutations = list(mutation_operators.keys())
-        if verbose:
-            print(f"Używam wszystkich operatorów mutacji: {available_mutations}")
     else:
         available_mutations = [mutation_type]
-    
-    # Konfiguracja memetyczna
+
     memetic_fn = None
     memetic_params = {}
     
@@ -177,10 +158,22 @@ def genetic_algorithm(dist_matrix,
     convergence_history = [best_distance]
     generation_times = []
 
+    if verbose:
+        print("\nKonfiguracja")
+        print(f"- Rozmiar populacji: {pop_size}")
+        print(f"- Liczba generacji: {generations}")
+        print(f"- Zatrzymanie po zbieżności (max generacji): {max_generations}")
+        print(f"- Operator(y) krzyżowania: {', '.join(available_crossovers)}")
+        print(f"- Operator(y) mutacji: {', '.join(available_mutations)}")
+        print(f"- Prawdopodobieństwo krzyżowania: {crossover_prob:.2f}")
+        print(f"- Prawdopodobieństwo mutacji: {mutation_prob:.2f}")
+        print(f"- Algorytm memetyczny: {memetic_type}")
+        print(f"- Tryb memetyczny: {memetic_mode}")
+        print("\nAlgorytm genetyczny")
+
     for gen in range(generations):
         gen_start = time.time()
-        
-        # Oblicz postęp algorytmu (0.0 - 1.0) dla adaptive scramble
+
         progress = gen / generations if generations > 0 else 0
         
         new_population = []
@@ -189,7 +182,6 @@ def genetic_algorithm(dist_matrix,
             parent1 = tournament_selection(population, dist_matrix)
             parent2 = tournament_selection(population, dist_matrix)
 
-            # KRZYŻOWANIE - losuj operator przy każdym wywołaniu
             if random.random() < crossover_prob:
                 crossover_name = random.choice(available_crossovers)
                 crossover_fn = crossover_operators[crossover_name]
@@ -197,12 +189,10 @@ def genetic_algorithm(dist_matrix,
             else:
                 child = parent1.copy()
 
-            # MUTACJA - losuj operator przy każdym wywołaniu
             if random.random() < mutation_prob:
                 mutation_name = random.choice(available_mutations)
                 mutation_fn = mutation_operators[mutation_name]
-                
-                # Specjalna obsługa dla scramble z adaptive
+
                 if mutation_name == 'scramble':
                     child = mutation_fn(child, progress=progress)
                 else:
@@ -210,7 +200,6 @@ def genetic_algorithm(dist_matrix,
             else:
                 child = parent1.copy()
 
-            # Algorytm memetyczny - stosuj dla każdego osobnika
             if memetic_fn and memetic_mode == 'all':
                 child = memetic_fn(child, dist_matrix, **memetic_params)
 
@@ -218,7 +207,6 @@ def genetic_algorithm(dist_matrix,
 
         population = new_population
 
-        # Algorytm memetyczny - tylko dla elity (top 10%)
         if memetic_fn and memetic_mode == 'elite':
             population.sort(key=lambda ind: fitness(ind, dist_matrix))
             elite_size = max(1, int(0.1 * pop_size))
@@ -237,10 +225,8 @@ def genetic_algorithm(dist_matrix,
 
         if verbose and (gen + 1) % max(1, generations // 20) == 0:
             avg_time = sum(generation_times[-10:]) / len(generation_times[-10:])
-            print(f"Gen {gen + 1:4d}/{generations}: długość = {best_distance:.2f}, "
-                  f"czas/gen = {avg_time:.3f}s")
-        
-        # Automatyczne zatrzymanie
+            print(f"- Gen {gen + 1:4d}/{generations}: długość = {best_distance:.2f}, "f"czas/gen = {avg_time:.3f}s")
+
         if auto_stop and gen >= convergence_window:
             old_best = convergence_history[gen - convergence_window + 1]
             improvement = (old_best - best_distance) / old_best
@@ -248,7 +234,7 @@ def genetic_algorithm(dist_matrix,
             if improvement < convergence_threshold:
                 if verbose:
                     print(f"\nZbieżność osiągnięta w generacji {gen + 1}")
-                    print(f"  Poprawa w ostatnich {convergence_window} generacjach: {improvement*100:.3f}%")
+                    print(f"Poprawa w ostatnich {convergence_window} generacjach: {improvement*100:.3f}%")
                 break
 
     avg_gen_time = sum(generation_times) / len(generation_times) if generation_times else 0
@@ -265,12 +251,27 @@ def genetic_algorithm(dist_matrix,
 if __name__ == "__main__":
     data = read_file_tsp('./data/original/berlin52.tsp')
 
-    ga = genetic_algorithm(distance_matrix(data.node_coords))
+    print(f"Dane\n- {data}")
 
-    print("\nNajlepsza trasa:", ga['best_solution'])
+    ga = genetic_algorithm(
+        distance_matrix(data.node_coords),
+        pop_size=100,
+        generations=100,
+        crossover_type='erx',
+        crossover_prob=0.9,
+        mutation_type='inversion',
+        mutation_prob=0.5,
+        memetic_type='2opt',
+        memetic_mode='elite',
+        # verbose=False
+    )
 
-    print(f"Długość trasy: {ga['best_length']:.2f}")
+    print("\nWyniki")
+    print(f"- Najlepsza długość trasy: {ga['best_length']:.2f}")
+    print(f"- Średni czas jednej generacji: {ga['time_per_generation']:.3f} s")
+    print(f"- Łączny czas wykonania: {ga['total_time']:.3f} s")
+    print(f"- Najlepsza trasa (kolejność miast):\n  {ga['best_solution']}")
+    print(f"- Historia zbieżności (ostatnie 10 wartości):\n  {ga['convergence_history'][-10:]}")
 
     data.plot()
-
     data.plot(ga['best_solution'])
