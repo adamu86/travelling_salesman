@@ -457,7 +457,7 @@ class TSPExperiment:
         times = [[r['total_time'] for r in results[alg]] for alg in alg_names]
         gens = [[r['generations_run'] for r in results[alg]] for alg in alg_names]
         
-        axes[0, 0].boxplot(lengths, labels=alg_names)
+        axes[0, 0].boxplot(lengths, tick_labels=alg_names)
         axes[0, 0].set_ylabel('Długość trasy')
         axes[0, 0].set_title(f'Jakość rozwiązań - {problem_name}')
         axes[0, 0].grid(True, alpha=0.3)
@@ -466,13 +466,13 @@ class TSPExperiment:
             axes[0, 0].axhline(y=known_optimal, color='r', linestyle='--', label='Optimum', linewidth=2)
             axes[0, 0].legend()
         
-        axes[0, 1].boxplot(times, labels=alg_names)
+        axes[0, 1].boxplot(times, tick_labels=alg_names)
         axes[0, 1].set_ylabel('Czas [s]')
         axes[0, 1].set_title('Czas obliczeń')
         axes[0, 1].grid(True, alpha=0.3)
         axes[0, 1].tick_params(axis='x', rotation=15)
         
-        axes[1, 0].boxplot(gens, labels=alg_names)
+        axes[1, 0].boxplot(gens, tick_labels=alg_names)
         axes[1, 0].set_ylabel('Liczba generacji')
         axes[1, 0].set_title('Zbieżność')
         axes[1, 0].grid(True, alpha=0.3)
@@ -509,18 +509,19 @@ class TSPExperiment:
 if __name__ == "__main__":
     exp = TSPExperiment()
 
+    experiment_type = "quick"
     
-    problem_file = "./data/coords.tsp"
+    problem_file = './data/original/berlin52.tsp'
     known_optimal = 7542
     
     # 1: Porównanie operatorów krzyżowania
     exp.compare_crossover_operators(
-        problem_file, 
-        known_optimal=known_optimal, 
+        problem_file,
+        known_optimal=known_optimal,
         runs=5,
         experiment_type=experiment_type
     )
-    
+
     # 2: Porównanie z heurystykami
     exp.compare_with_heuristics(
         problem_file,

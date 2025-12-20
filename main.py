@@ -14,7 +14,7 @@ from mutation.three_opt import three_opt
 from mutation.lin_kernighan_light import lin_kernighan_light
 
 
-def read_file_tsp(path='coords.tsp'):
+def read_file_tsp(path='./data/original/berlin52.tsp'):
     tsp = TSP()
 
     with open(path, 'r') as file:
