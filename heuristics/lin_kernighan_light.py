@@ -1,5 +1,5 @@
-from mutation.two_opt import two_opt
-from mutation.three_opt import three_opt
+from heuristics.two_opt import two_opt
+from heuristics.three_opt import three_opt
 
 def lin_kernighan_light(route, dist_matrix, max_outer, two_opt_iters, three_opt_iters):
 

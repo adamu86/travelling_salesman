@@ -12,12 +12,14 @@ RANDOM_SEED = 42
 random.seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
 
+
 class TSPExperiment:
     def __init__(self, output_dir="results"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
     
     def get_smart_config(self, num_cities, experiment_type='standard'):
+        """Zwraca konfigurację z prawdopodobieństwami krzyżowania i mutacji"""
         if experiment_type == 'quick':
             return {
                 'pop_size': max(50, num_cities),
@@ -50,6 +52,7 @@ class TSPExperiment:
             }
         
     def run_single_experiment(self, dist_matrix, config, known_optimal=None, seed=None):
+        """Uruchamia pojedynczy eksperyment z opcjonalnym seedem"""
         if seed is not None:
             random.seed(seed)
             np.random.seed(seed)
@@ -67,8 +70,8 @@ class TSPExperiment:
             dist_matrix, 
             pop_size=run_config.get('pop_size'),
             generations=run_config.get('generations'),
-            crossover_type=run_config['crossover'],
-            mutation_type=run_config['mutation'],
+            crossover_type=run_config.get('crossover', 'all'),
+            mutation_type=run_config.get('mutation', 'all'),
             crossover_prob=run_config.get('crossover_prob', 0.9),
             mutation_prob=run_config.get('mutation_prob', 0.1),
             memetic_type=run_config.get('memetic'),
@@ -87,11 +90,15 @@ class TSPExperiment:
             
         return result
     
-    def compare_crossover_operators(self, problem_file, known_optimal=None, runs=5, experiment_type='standard'):
+    def experiment_1_ga_combinations(self, problem_file, known_optimal=None, runs=5, experiment_type='standard'):
+        """
+        EKSPERYMENT 1: Porównanie wszystkich kombinacji operatorów (6 + 1 losowa)
+        vs benchmark.
+        """
         print("\n" + "="*80)
-        print("EKSPERYMENT 1: Porównanie operatorów krzyżowania")
+        print("EKSPERYMENT 1: Wszystkie kombinacje operatorów GA")
         print("="*80)
-        print(f"SEED = {RANDOM_SEED} (dla powtarzalności wyników)")
+        print(f"🎲 SEED = {RANDOM_SEED}")
         
         data = read_file_tsp(problem_file)
         dist_matrix = distance_matrix(data.node_coords)
@@ -107,39 +114,65 @@ class TSPExperiment:
         print(f"  Max generacji: {smart_config['max_generations']}")
         print(f"  P(krzyżowanie): {smart_config['crossover_prob']}")
         print(f"  P(mutacja): {smart_config['mutation_prob']}")
-        print(f"  Okno zbieżności: {smart_config['convergence_window']}")
-        print(f"  Próg zbieżności: {smart_config['convergence_threshold']*100}%")
         print(f"  Powtórzenia: {runs}")
         
-        operators = ['pmx', 'ox', 'erx']
-        results = {op: [] for op in operators}
+        # Wszystkie kombinacje: 3 crossover x 2 mutation = 6 + 1 losowa
+        crossover_ops = ['pmx', 'ox', 'erx']
+        mutation_ops = ['inversion', 'scramble']
         
-        for operator in operators:
-            print(f"\n--- Testowanie operatora: {operator.upper()}")
+        # Generuj wszystkie kombinacje
+        combinations = []
+        for cross in crossover_ops:
+            for mut in mutation_ops:
+                combinations.append({
+                    'name': f'{cross.upper()}+{mut}',
+                    'crossover': cross,
+                    'mutation': mut
+                })
+        
+        # Dodaj wariant losowy
+        combinations.append({
+            'name': 'RANDOM',
+            'crossover': 'all',
+            'mutation': 'all'
+        })
+        
+        print(f"\nTestowane kombinacje ({len(combinations)}):")
+        for combo in combinations:
+            print(f"  - {combo['name']}")
+        
+        results = {combo['name']: [] for combo in combinations}
+        
+        for combo in combinations:
+            print(f"\n--- Testowanie: {combo['name']}")
             for run in range(runs):
-                run_seed = RANDOM_SEED + run * 1000 + hash(operator) % 1000
+                run_seed = RANDOM_SEED + run * 1000 + hash(combo['name']) % 1000
                 print(f"  Run {run+1}/{runs} (seed={run_seed})...", end=' ', flush=True)
                 
                 config = {
-                    'crossover': operator,
-                    'mutation': 'inversion',
+                    'crossover': combo['crossover'],
+                    'mutation': combo['mutation'],
                     'memetic': None,
                     'experiment_type': experiment_type
                 }
                 
                 result = self.run_single_experiment(dist_matrix, config, known_optimal, seed=run_seed)
-                results[operator].append(result)
+                results[combo['name']].append(result)
                 
                 error_str = f"(błąd: {result['error_percent']:.2f}%)" if known_optimal else ""
                 print(f"Długość: {result['best_length']:.2f} w {result['generations_run']} gen {error_str}")
         
-        self._save_and_plot_crossover_comparison(results, data.name, known_optimal)
-        self._print_summary_table(results, "Operatory krzyżowania")
+        self._save_and_plot_combinations(results, data.name, known_optimal, "exp1_ga_combinations")
+        self._print_summary_table(results, "Kombinacje operatorów GA")
         return results
     
-    def compare_with_heuristics(self, problem_file, known_optimal=None, experiment_type='standard'):
+    def experiment_2_ga_vs_heuristics(self, problem_file, known_optimal=None, runs=5, experiment_type='standard'):
+        """
+        EKSPERYMENT 2: GA (bazowy, najlepszy z exp1) vs heurystyki 2-opt, 3-opt, LK
+        vs benchmark.
+        """
         print("\n" + "="*80)
-        print("EKSPERYMENT 2: Porównanie z heurystykami lokalnymi")
+        print("EKSPERYMENT 2: GA vs Heurystyki lokalne")
         print("="*80)
         print(f"🎲 SEED = {RANDOM_SEED}")
         
@@ -152,82 +185,156 @@ class TSPExperiment:
         
         from mutation.two_opt import two_opt, route_distance
         from mutation.three_opt import three_opt
+        from mutation.lin_kernighan_light import lin_kernighan_light
         
         results = {}
         
-        # 1. GA
-        print("\n--- 1. Czysty algorytm genetyczny...")
-        config = {
-            'crossover': 'erx',
-            'mutation': 'inversion',
-            'memetic': None,
-            'experiment_type': experiment_type
-        }
-        results['GA'] = self.run_single_experiment(dist_matrix, config, known_optimal, seed=RANDOM_SEED)
-        print(f"   Długość: {results['GA']['best_length']:.2f} w {results['GA']['generations_run']} gen")
+        # 1. GA bazowy (używamy RANDOM - najczęściej najlepszy)
+        print("\n--- 1. Algorytm Genetyczny (bazowy, wszystkie operatory losowo)")
+        ga_results = []
+        for run in range(runs):
+            run_seed = RANDOM_SEED + run * 1000
+            print(f"  Run {run+1}/{runs} (seed={run_seed})...", end=' ', flush=True)
+            
+            config = {
+                'crossover': 'all',
+                'mutation': 'all',
+                'memetic': None,
+                'experiment_type': experiment_type
+            }
+            result = self.run_single_experiment(dist_matrix, config, known_optimal, seed=run_seed)
+            ga_results.append(result)
+            
+            error_str = f"(błąd: {result['error_percent']:.2f}%)" if known_optimal else ""
+            print(f"Długość: {result['best_length']:.2f} w {result['generations_run']} gen {error_str}")
         
-        # 2. heurystyka 2-opt (wielokrotnie z losowego startu)
-        print("\n--- 2. Heurystyka 2-opt (10 prób z losowego startu)...")
-        random.seed(RANDOM_SEED)
-        best_2opt = float('inf')
-        best_solution_2opt = None
-        start_time = time.time()
+        results['GA'] = ga_results
         
-        for trial in range(10):
-            random_solution = list(range(len(dist_matrix)))
-            random.shuffle(random_solution)
-            solution_2opt = two_opt(random_solution, dist_matrix, max_iters=1000)
-            dist_2opt = route_distance(solution_2opt, dist_matrix)
-            if dist_2opt < best_2opt:
-                best_2opt = dist_2opt
-                best_solution_2opt = solution_2opt
+        # 2. Heurystyka 2-opt
+        print("\n--- 2. Heurystyka 2-opt (10 prób z losowego startu)")
+        opt2_results = []
+        for run in range(runs):
+            run_seed = RANDOM_SEED + run * 2000
+            random.seed(run_seed)
+            
+            best_2opt = float('inf')
+            best_solution_2opt = None
+            start_time = time.time()
+            
+            for trial in range(10):
+                random_solution = list(range(len(dist_matrix)))
+                random.shuffle(random_solution)
+                solution_2opt = two_opt(random_solution, dist_matrix, max_iters=1000)
+                dist_2opt = route_distance(solution_2opt, dist_matrix)
+                if dist_2opt < best_2opt:
+                    best_2opt = dist_2opt
+                    best_solution_2opt = solution_2opt
+            
+            time_2opt = time.time() - start_time
+            result = {
+                'best_length': best_2opt,
+                'total_time': time_2opt,
+                'solution': best_solution_2opt,
+                'generations_run': 10,  # 10 prób
+                'convergence_history': [best_2opt]
+            }
+            if known_optimal:
+                result['error_percent'] = ((best_2opt - known_optimal) / known_optimal) * 100
+            
+            opt2_results.append(result)
+            error_str = f"(błąd: {result['error_percent']:.2f}%)" if known_optimal else ""
+            print(f"  Próba {run+1}/{runs}: {best_2opt:.2f} w {time_2opt:.2f}s {error_str}")
         
-        time_2opt = time.time() - start_time
-        results['2-opt'] = {
-            'best_length': best_2opt,
-            'total_time': time_2opt,
-            'solution': best_solution_2opt
-        }
-        if known_optimal:
-            results['2-opt']['error_percent'] = ((best_2opt - known_optimal) / known_optimal) * 100
+        results['2-opt'] = opt2_results
         
-        print(f"   Długość: {best_2opt:.2f} w {time_2opt:.2f}s")
+        # 3. Heurystyka 3-opt
+        print("\n--- 3. Heurystyka 3-opt (10 prób z losowego startu)")
+        opt3_results = []
+        for run in range(runs):
+            run_seed = RANDOM_SEED + run * 3000
+            random.seed(run_seed)
+            
+            best_3opt = float('inf')
+            best_solution_3opt = None
+            start_time = time.time()
+            
+            for trial in range(10):
+                random_solution = list(range(len(dist_matrix)))
+                random.shuffle(random_solution)
+                solution_3opt = three_opt(random_solution, dist_matrix, max_iters=100)
+                dist_3opt = route_distance(solution_3opt, dist_matrix)
+                if dist_3opt < best_3opt:
+                    best_3opt = dist_3opt
+                    best_solution_3opt = solution_3opt
+            
+            time_3opt = time.time() - start_time
+            result = {
+                'best_length': best_3opt,
+                'total_time': time_3opt,
+                'solution': best_solution_3opt,
+                'generations_run': 10,
+                'convergence_history': [best_3opt]
+            }
+            if known_optimal:
+                result['error_percent'] = ((best_3opt - known_optimal) / known_optimal) * 100
+            
+            opt3_results.append(result)
+            error_str = f"(błąd: {result['error_percent']:.2f}%)" if known_optimal else ""
+            print(f"  Próba {run+1}/{runs}: {best_3opt:.2f} w {time_3opt:.2f}s {error_str}")
         
-        # 3. heurystyka 3-opt
-        print("\n--- 3. Heurystyka 3-opt (10 prób z losowego startu)...")
-        random.seed(RANDOM_SEED)
-        best_3opt = float('inf')
-        best_solution_3opt = None
-        start_time = time.time()
+        results['3-opt'] = opt3_results
         
-        for trial in range(10):
-            random_solution = list(range(len(dist_matrix)))
-            random.shuffle(random_solution)
-            solution_3opt = three_opt(random_solution, dist_matrix, max_iters=100)
-            dist_3opt = route_distance(solution_3opt, dist_matrix)
-            if dist_3opt < best_3opt:
-                best_3opt = dist_3opt
-                best_solution_3opt = solution_3opt
+        # 4. Lin-Kernighan (heurystyka)
+        print("\n--- 4. Heurystyka Lin-Kernighan (10 prób z losowego startu)")
+        lk_results = []
+        for run in range(runs):
+            run_seed = RANDOM_SEED + run * 4000
+            random.seed(run_seed)
+            
+            best_lk = float('inf')
+            best_solution_lk = None
+            start_time = time.time()
+            
+            for trial in range(10):
+                random_solution = list(range(len(dist_matrix)))
+                random.shuffle(random_solution)
+                solution_lk = lin_kernighan_light(random_solution, dist_matrix, 
+                                                   max_outer=5, two_opt_iters=50, three_opt_iters=10)
+                dist_lk = route_distance(solution_lk, dist_matrix)
+                if dist_lk < best_lk:
+                    best_lk = dist_lk
+                    best_solution_lk = solution_lk
+            
+            time_lk = time.time() - start_time
+            result = {
+                'best_length': best_lk,
+                'total_time': time_lk,
+                'solution': best_solution_lk,
+                'generations_run': 10,
+                'convergence_history': [best_lk]
+            }
+            if known_optimal:
+                result['error_percent'] = ((best_lk - known_optimal) / known_optimal) * 100
+            
+            lk_results.append(result)
+            error_str = f"(błąd: {result['error_percent']:.2f}%)" if known_optimal else ""
+            print(f"  Próba {run+1}/{runs}: {best_lk:.2f} w {time_lk:.2f}s {error_str}")
         
-        time_3opt = time.time() - start_time
-        results['3-opt'] = {
-            'best_length': best_3opt,
-            'total_time': time_3opt,
-            'solution': best_solution_3opt
-        }
-        if known_optimal:
-            results['3-opt']['error_percent'] = ((best_3opt - known_optimal) / known_optimal) * 100
+        results['LK'] = lk_results
         
-        print(f"   Długość: {best_3opt:.2f} w {time_3opt:.2f}s")
-        
-        self._save_heuristic_comparison(results, data.name, known_optimal)
+        self._save_and_plot_comparison(results, data.name, known_optimal, "exp2_ga_vs_heuristics")
+        self._print_summary_table(results, "GA vs Heurystyki")
         return results
     
-    def compare_memetic_variants(self, problem_file, known_optimal=None, runs=3, experiment_type='standard'):
+    def experiment_3_ga_vs_memetic(self, problem_file, known_optimal=None, runs=3, experiment_type='standard'):
+        """
+        EKSPERYMENT 3: GA (bazowy) vs Algorytmy memetyczne
+        (2-opt wszystkie, 3-opt elite, LK elite) vs benchmark.
+        """
         print("\n" + "="*80)
-        print("EKSPERYMENT 3: Algorytmy memetyczne")
+        print("EKSPERYMENT 3: GA vs Algorytmy memetyczne")
         print("="*80)
-        print(f"SEED = {RANDOM_SEED}")
+        print(f"🎲 SEED = {RANDOM_SEED}")
         
         data = read_file_tsp(problem_file)
         dist_matrix = distance_matrix(data.node_coords)
@@ -237,11 +344,15 @@ class TSPExperiment:
             print(f"Znane optimum: {known_optimal}")
         
         variants = [
-            {'name': 'GA', 'memetic': None},
-            {'name': 'MA-2opt', 'memetic': '2opt'},
-            {'name': 'MA-3opt', 'memetic': '3opt'},
-            {'name': 'MA-LK', 'memetic': 'lk'}
+            {'name': 'GA (bazowy)', 'memetic': None, 'mode': 'all'},
+            {'name': 'MA-2opt (wszystkie)', 'memetic': '2opt', 'mode': 'all'},
+            {'name': 'MA-3opt (elite 10%)', 'memetic': '3opt', 'mode': 'elite'},
+            {'name': 'MA-LK (elite 10%)', 'memetic': 'lk', 'mode': 'elite'}
         ]
+        
+        print(f"\nTestowane warianty:")
+        for v in variants:
+            print(f"  - {v['name']}")
         
         results = {v['name']: [] for v in variants}
         
@@ -252,10 +363,10 @@ class TSPExperiment:
                 print(f"  Run {run+1}/{runs} (seed={run_seed})...", end=' ', flush=True)
                 
                 config = {
-                    'crossover': 'erx',
-                    'mutation': 'inversion',
+                    'crossover': 'all',
+                    'mutation': 'all',
                     'memetic': variant['memetic'],
-                    'memetic_mode': 'all',
+                    'memetic_mode': variant['mode'],
                     'experiment_type': experiment_type
                 }
                 
@@ -269,16 +380,15 @@ class TSPExperiment:
                 print(f"Długość: {result['best_length']:.2f} w {result['generations_run']} gen, "
                       f"czas: {result['total_time']:.1f}s {error_str}")
         
-        self._save_memetic_comparison(results, data.name, known_optimal)
-        self._print_summary_table(results, "Algorytmy memetyczne")
+        self._save_and_plot_comparison(results, data.name, known_optimal, "exp3_ga_vs_memetic")
+        self._print_summary_table(results, "GA vs Algorytmy memetyczne")
         return results
     
     def _print_summary_table(self, results, title):
-        """Wyświetla podsumowanie w formie tabeli"""
         print(f"\n{'='*80}")
         print(f"PODSUMOWANIE: {title}")
         print(f"{'='*80}")
-        print(f"{'Metoda':<15} {'Śr. długość':>12} {'Odch. std':>12} {'Min':>12} {'Śr. czas':>12}")
+        print(f"{'Metoda':<25} {'Śr. długość':>12} {'Odch. std':>12} {'Min':>12} {'Śr. czas':>12}")
         print(f"{'-'*80}")
         
         for method, runs in results.items():
@@ -291,23 +401,22 @@ class TSPExperiment:
                 min_length = np.min(lengths)
                 avg_time = np.mean(times)
                 
-                print(f"{method:<15} {avg_length:>12.2f} {std_length:>12.2f} {min_length:>12.2f} {avg_time:>12.1f}s")
+                print(f"{method:<25} {avg_length:>12.2f} {std_length:>12.2f} {min_length:>12.2f} {avg_time:>12.1f}s")
         
         print(f"{'='*80}\n")
     
-    def _save_and_plot_crossover_comparison(self, results, problem_name, known_optimal):
-        
-        csv_file = self.output_dir / f"crossover_comparison_{problem_name}.csv"
+    def _save_and_plot_combinations(self, results, problem_name, known_optimal, filename):
+        csv_file = self.output_dir / f"{filename}_{problem_name}.csv"
         with open(csv_file, 'w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(['Operator', 'Run', 'Best_Length', 'Generations', 'Time', 'Error_%', 'Seed'])
+            writer.writerow(['Combination', 'Run', 'Best_Length', 'Generations', 'Time', 'Error_%', 'Seed'])
             
-            for operator, runs in results.items():
+            for combo_name, runs in results.items():
                 for i, result in enumerate(runs):
                     error = result.get('error_percent', '')
                     seed = result.get('seed', '')
                     writer.writerow([
-                        operator, 
+                        combo_name, 
                         i+1, 
                         f"{result['best_length']:.2f}",
                         result['generations_run'],
@@ -316,21 +425,23 @@ class TSPExperiment:
                         seed
                     ])
         
-        # wykresy
-        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        # Wykresy
+        fig, axes = plt.subplots(2, 2, figsize=(16, 12))
         
-        operators = list(results.keys())
-        lengths = [[r['best_length'] for r in results[op]] for op in operators]
-        times = [[r['total_time'] for r in results[op]] for op in operators]
-        gens = [[r['generations_run'] for r in results[op]] for op in operators]
+        methods = list(results.keys())
+        lengths = [[r['best_length'] for r in results[m]] for m in methods]
+        times = [[r['total_time'] for r in results[m]] for m in methods]
+        gens = [[r['generations_run'] for r in results[m]] for m in methods]
         
         axes[0, 0].boxplot(lengths, tick_labels=[op.upper() for op in operators])
         axes[0, 0].set_ylabel('Długość trasy')
         axes[0, 0].set_title(f'Jakość rozwiązań - {problem_name}')
         axes[0, 0].grid(True, alpha=0.3)
+        axes[0, 0].tick_params(axis='x', rotation=45, labelsize=8)
         
         if known_optimal:
-            axes[0, 0].axhline(y=known_optimal, color='r', linestyle='--', label='Optimum', linewidth=2)
+            axes[0, 0].axhline(y=known_optimal, color='r', linestyle='--', 
+                              label='Optimum', linewidth=2)
             axes[0, 0].legend()
         
         # boxplot czasu
@@ -338,118 +449,63 @@ class TSPExperiment:
         axes[0, 1].set_ylabel('Czas [s]')
         axes[0, 1].set_title('Czas obliczeń')
         axes[0, 1].grid(True, alpha=0.3)
+        axes[0, 1].tick_params(axis='x', rotation=45, labelsize=8)
         
         # boxplot liczby generacji
         axes[1, 0].boxplot(gens, tick_labels=[op.upper() for op in operators])
         axes[1, 0].set_ylabel('Liczba generacji')
-        axes[1, 0].set_title('Zbieżność (liczba generacji do zatrzymania)')
+        axes[1, 0].set_title('Zbieżność')
         axes[1, 0].grid(True, alpha=0.3)
+        axes[1, 0].tick_params(axis='x', rotation=45, labelsize=8)
         
-        # wykres zbieżności (średnia)
-        for op in operators:
-            max_len = max(len(r['convergence_history']) for r in results[op])
-            
+        # Wykres zbieżności
+        for method in methods:
+            max_len = max(len(r['convergence_history']) for r in results[method])
             histories = []
-            for r in results[op]:
+            for r in results[method]:
                 hist = r['convergence_history'][:]
                 while len(hist) < max_len:
                     hist.append(hist[-1])
                 histories.append(hist)
             
             avg_history = np.mean(histories, axis=0)
-            axes[1, 1].plot(avg_history, label=op.upper(), linewidth=2, alpha=0.7)
+            axes[1, 1].plot(avg_history, label=method, linewidth=2, alpha=0.7)
         
         if known_optimal:
-            axes[1, 1].axhline(y=known_optimal, color='r', linestyle='--', label='Optimum', linewidth=2)
+            axes[1, 1].axhline(y=known_optimal, color='r', linestyle='--', 
+                              label='Optimum', linewidth=2)
         
         axes[1, 1].set_xlabel('Generacja')
         axes[1, 1].set_ylabel('Długość trasy')
         axes[1, 1].set_title('Średnia zbieżność')
-        axes[1, 1].legend()
+        axes[1, 1].legend(fontsize=8, loc='best')
         axes[1, 1].grid(True, alpha=0.3)
         
         plt.tight_layout()
-        plt.savefig(self.output_dir / f"crossover_comparison_{problem_name}.png", dpi=300)
+        plt.savefig(self.output_dir / f"{filename}_{problem_name}.png", dpi=300, bbox_inches='tight')
         plt.close()
         
-        print(f"\nWyniki zapisano")
+        print(f"✅ Wyniki zapisano do {csv_file}")
     
-    def _save_heuristic_comparison(self, results, problem_name, known_optimal):
-        
-        csv_file = self.output_dir / f"heuristic_comparison_{problem_name}.csv"
+    def _save_and_plot_comparison(self, results, problem_name, known_optimal, filename):
+        csv_file = self.output_dir / f"{filename}_{problem_name}.csv"
         with open(csv_file, 'w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(['Method', 'Best_Length', 'Time', 'Error_%'])
+            writer.writerow(['Method', 'Run', 'Best_Length', 'Generations', 'Time', 'Error_%'])
             
-            for method, result in results.items():
-                error = ''
-                if known_optimal:
-                    error = f"{result.get('error_percent', 0):.2f}"
-                
-                time_val = result.get('total_time', 0)
-                
-                writer.writerow([
-                    method,
-                    f"{result['best_length']:.2f}",
-                    f"{time_val:.2f}",
-                    error
-                ])
-
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
-        
-        methods = list(results.keys())
-        lengths = [results[m]['best_length'] for m in methods]
-        times = [results[m].get('total_time', 0) for m in methods]
-        
-        colors = ['#3498db', '#e74c3c', '#2ecc71']
-        
-        ax1.bar(methods, lengths, color=colors)
-        ax1.set_ylabel('Długość trasy')
-        ax1.set_title(f'Jakość rozwiązań - {problem_name}')
-        ax1.grid(True, alpha=0.3, axis='y')
-        
-        if known_optimal:
-            ax1.axhline(y=known_optimal, color='red', linestyle='--', label='Optimum', linewidth=2)
-            ax1.legend()
-        
-        for i, (m, l) in enumerate(zip(methods, lengths)):
-            ax1.text(i, l, f'{l:.0f}', ha='center', va='bottom', fontweight='bold')
-        
-        ax2.bar(methods, times, color=colors)
-        ax2.set_ylabel('Czas [s]')
-        ax2.set_title('Czas obliczeń')
-        ax2.grid(True, alpha=0.3, axis='y')
-
-        for i, (m, t) in enumerate(zip(methods, times)):
-            ax2.text(i, t, f'{t:.1f}s', ha='center', va='bottom', fontweight='bold')
-        
-        plt.tight_layout()
-        plt.savefig(self.output_dir / f"heuristic_comparison_{problem_name}.png", dpi=300)
-        plt.close()
-        
-        print(f"\nWyniki zapisano")
-    
-    def _save_memetic_comparison(self, results, problem_name, known_optimal):
-        
-        csv_file = self.output_dir / f"memetic_comparison_{problem_name}.csv"
-        with open(csv_file, 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['Algorithm', 'Run', 'Best_Length', 'Generations', 'Time', 'Error_%', 'Seed'])
-            
-            for alg_name, runs in results.items():
+            for method, runs in results.items():
                 for i, result in enumerate(runs):
                     error = result.get('error_percent', '')
-                    seed = result.get('seed', '')
                     writer.writerow([
-                        alg_name,
+                        method,
                         i+1,
                         f"{result['best_length']:.2f}",
-                        result['generations_run'],
+                        result.get('generations_run', 0),
                         f"{result['total_time']:.2f}",
-                        f"{error:.2f}" if error else '',
-                        seed
+                        f"{error:.2f}" if error else ''
                     ])
         
+        # Wykresy
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
         
         alg_names = list(results.keys())
@@ -462,8 +518,10 @@ class TSPExperiment:
         axes[0, 0].set_title(f'Jakość rozwiązań - {problem_name}')
         axes[0, 0].grid(True, alpha=0.3)
         axes[0, 0].tick_params(axis='x', rotation=15)
+        
         if known_optimal:
-            axes[0, 0].axhline(y=known_optimal, color='r', linestyle='--', label='Optimum', linewidth=2)
+            axes[0, 0].axhline(y=known_optimal, color='r', linestyle='--', 
+                              label='Optimum', linewidth=2)
             axes[0, 0].legend()
         
         axes[0, 1].boxplot(times, tick_labels=alg_names)
@@ -478,20 +536,28 @@ class TSPExperiment:
         axes[1, 0].grid(True, alpha=0.3)
         axes[1, 0].tick_params(axis='x', rotation=15)
         
-        for alg in alg_names:
-            max_len = max(len(r['convergence_history']) for r in results[alg])
-            histories = []
-            for r in results[alg]:
-                hist = r['convergence_history'][:]
-                while len(hist) < max_len:
-                    hist.append(hist[-1])
-                histories.append(hist)
-            
-            avg_history = np.mean(histories, axis=0)
-            axes[1, 1].plot(avg_history, label=alg, linewidth=2, alpha=0.7)
+        if known_optimal:
+            axes[1, 0].axhline(y=known_optimal, color='r', linestyle='--', 
+                              label='Optimum', linewidth=2)
+            axes[1, 0].legend()
+        
+        # Wykres zbieżności
+        for method in methods:
+            if 'convergence_history' in results[method][0]:
+                max_len = max(len(r['convergence_history']) for r in results[method])
+                histories = []
+                for r in results[method]:
+                    hist = r['convergence_history'][:]
+                    while len(hist) < max_len:
+                        hist.append(hist[-1])
+                    histories.append(hist)
+                
+                avg_history = np.mean(histories, axis=0)
+                axes[1, 1].plot(avg_history, label=method, linewidth=2, alpha=0.7)
         
         if known_optimal:
-            axes[1, 1].axhline(y=known_optimal, color='r', linestyle='--', label='Optimum', linewidth=2)
+            axes[1, 1].axhline(y=known_optimal, color='r', linestyle='--', 
+                              label='Optimum', linewidth=2)
         
         axes[1, 1].set_xlabel('Generacja')
         axes[1, 1].set_ylabel('Długość trasy')
@@ -500,41 +566,59 @@ class TSPExperiment:
         axes[1, 1].grid(True, alpha=0.3)
         
         plt.tight_layout()
-        plt.savefig(self.output_dir / f"memetic_comparison_{problem_name}.png", dpi=300)
+        plt.savefig(self.output_dir / f"{filename}_{problem_name}.png", dpi=300)
         plt.close()
         
-        print(f"\nWyniki zapisano")
+        print(f"✅ Wyniki zapisano do {csv_file}")
 
 
 if __name__ == "__main__":
+    print("="*80)
+    print("🧬 EKSPERYMENTY TSP - SYSTEMATYCZNE PORÓWNANIE")
+    print(f"   Globalny seed: {RANDOM_SEED}")
+    print("="*80)
+    
     exp = TSPExperiment()
 
     experiment_type = "quick"
     
-    problem_file = './data/original/berlin52.tsp'
-    known_optimal = 7542
-    
-    # 1: Porównanie operatorów krzyżowania
-    exp.compare_crossover_operators(
-        problem_file,
-        known_optimal=known_optimal,
-        runs=5,
-        experiment_type=experiment_type
-    )
+    # problem_file = "./data/coords.tsp"
+    # known_optimal = 7542
 
-    # 2: Porównanie z heurystykami
-    exp.compare_with_heuristics(
-        problem_file,
-        known_optimal=known_optimal,
-        experiment_type=experiment_type
-    )
+    problem_file = "./data/eil51.tsp"
+    known_optimal = 426
     
-    # 3: Algorytmy memetyczne
-    exp.compare_memetic_variants(
+    # ========================================================================
+    # EKSPERYMENT 1: Wszystkie kombinacje operatorów (6 + 1 losowa)
+    # ========================================================================
+    #exp.experiment_1_ga_combinations(
+        #problem_file, 
+        #known_optimal=known_optimal, 
+        #runs=5,
+        #experiment_type=experiment_type
+    #)
+    
+    # ========================================================================
+    # EKSPERYMENT 2: GA (bazowy) vs Heurystyki (2-opt, 3-opt, LK)
+    # ========================================================================
+    #exp.experiment_2_ga_vs_heuristics(
+        #problem_file,
+        #known_optimal=known_optimal,
+        #runs=5,
+        #experiment_type=experiment_type
+    #)
+    
+    # ========================================================================
+    # EKSPERYMENT 3: GA (bazowy) vs Algorytmy memetyczne
+    # ========================================================================
+    exp.experiment_3_ga_vs_memetic(
         problem_file,
         known_optimal=known_optimal,
         runs=3,
         experiment_type=experiment_type
     )
     
-    print(" KONIEC ")
+    print("\n" + "="*80)
+    print("✅ WSZYSTKIE EKSPERYMENTY ZAKOŃCZONE")
+    print("   Sprawdź folder 'results/' po szczegóły")
+    print("="*80)
