@@ -173,7 +173,7 @@ class TSPExperiment:
         ga_results = []
         for run in range(runs):
             run_seed = RANDOM_SEED + run * 1000
-            print(f"  Run {run+1}/{runs}...", end=' ', flush=True)
+            print(f"  - Run {run+1}/{runs}...", end=' ', flush=True)
             
             config = {
                 'crossover': 'all',
@@ -221,7 +221,7 @@ class TSPExperiment:
             
             opt2_results.append(result)
             error_str = f"(błąd: {result['error_percent']:.2f}%)" if known_optimal else ""
-            print(f"  Run {run+1}/{runs}... Długość: {best_2opt:.2f} w {time_2opt:.2f}s {error_str}")
+            print(f"  - Run {run+1}/{runs}... Długość: {best_2opt:.2f} w {time_2opt:.2f}s {error_str}")
         
         results['2-opt'] = opt2_results
 
@@ -257,7 +257,7 @@ class TSPExperiment:
             
             opt3_results.append(result)
             error_str = f"(błąd: {result['error_percent']:.2f}%)" if known_optimal else ""
-            print(f"  Run {run+1}/{runs}... Długość: {best_3opt:.2f} w {time_3opt:.2f}s {error_str}")
+            print(f"  - Run {run+1}/{runs}... Długość: {best_3opt:.2f} w {time_3opt:.2f}s {error_str}")
         
         results['3-opt'] = opt3_results
 
@@ -294,7 +294,7 @@ class TSPExperiment:
             
             lk_results.append(result)
             error_str = f"(błąd: {result['error_percent']:.2f}%)" if known_optimal else ""
-            print(f"  Run {run+1}/{runs}... Długość: {best_lk:.2f} w {time_lk:.2f}s {error_str}")
+            print(f"  - Run {run+1}/{runs}... Długość: {best_lk:.2f} w {time_lk:.2f}s {error_str}")
         
         results['LK'] = lk_results
         
@@ -542,23 +542,23 @@ if __name__ == "__main__":
     problem_file = "./data/original/eil51.tsp"
     known_optimal = 426
 
-    # exp.experiment_1_ga_combinations(
-    #     problem_file,
-    #     known_optimal=known_optimal,
-    #     runs=1,
-    #     experiment_type=experiment_type
-    # )
-    #
-    # exp.experiment_2_ga_vs_heuristics(
-    #     problem_file,
-    #     known_optimal=known_optimal,
-    #     runs=1,
-    #     experiment_type=experiment_type
-    # )
+    exp.experiment_1_ga_combinations(
+        problem_file,
+        known_optimal=known_optimal,
+        runs=10,
+        experiment_type=experiment_type
+    )
+
+    exp.experiment_2_ga_vs_heuristics(
+        problem_file,
+        known_optimal=known_optimal,
+        runs=10,
+        experiment_type=experiment_type
+    )
 
     exp.experiment_3_ga_vs_memetic(
         problem_file,
         known_optimal=known_optimal,
-        runs=1,
+        runs=10,
         experiment_type=experiment_type
     )
