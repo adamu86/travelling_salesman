@@ -103,7 +103,6 @@ class TSPExperiment:
         print(f"  Max generacji: {smart_config['max_generations']}")
         print(f"  Powtórzenia: {runs}")
         
-        # wszystkie kombinacje: 3 crossover x 2 mutation = 6 + 1 losowa
         crossover_ops = ['pmx', 'ox', 'erx']
         mutation_ops = ['inversion', 'scramble']
 
@@ -401,7 +400,6 @@ class TSPExperiment:
         times = [[r['total_time'] for r in results[m]] for m in methods]
         gens = [[r['generations_run'] for r in results[m]] for m in methods]
 
-        # boxplot długości
         axes[0, 0].boxplot(lengths, tick_labels=methods)
         axes[0, 0].set_ylabel('Długość trasy')
         axes[0, 0].set_title(f'Jakość rozwiązań - {problem_name}')
@@ -413,21 +411,18 @@ class TSPExperiment:
                               label='Optimum', linewidth=2)
             axes[0, 0].legend()
 
-        # boxplot czasu
         axes[0, 1].boxplot(times, tick_labels=methods)
         axes[0, 1].set_ylabel('Czas [s]')
         axes[0, 1].set_title('Czas obliczeń')
         axes[0, 1].grid(True, alpha=0.3)
         axes[0, 1].tick_params(axis='x', rotation=45, labelsize=8)
 
-        # boxplot liczby generacji
         axes[1, 0].boxplot(gens, tick_labels=methods)
         axes[1, 0].set_ylabel('Liczba generacji')
         axes[1, 0].set_title('Zbieżność')
         axes[1, 0].grid(True, alpha=0.3)
         axes[1, 0].tick_params(axis='x', rotation=45, labelsize=8)
 
-        # wykres zbieżności
         for method in methods:
             max_len = max(len(r['convergence_history']) for r in results[method])
             histories = []
@@ -533,13 +528,10 @@ class TSPExperiment:
 if __name__ == "__main__":
     exp = TSPExperiment()
 
-    experiment_type = "quick"
-    
-    # problem_file = "./data/coords.tsp"
-    # known_optimal = 7542
+    experiment_type = "standard"
 
-    problem_file = "./data/original/eil51.tsp"
-    known_optimal = 426
+    problem_file = "./data/original/berlin52.tsp"
+    known_optimal = 7542
 
     exp.experiment_1_ga_combinations(
         problem_file,
@@ -548,12 +540,12 @@ if __name__ == "__main__":
         experiment_type=experiment_type
     )
 
-    exp.experiment_2_ga_vs_heuristics(
-        problem_file,
-        known_optimal=known_optimal,
-        runs=10,
-        experiment_type=experiment_type
-    )
+    #exp.experiment_2_ga_vs_heuristics(
+        #problem_file,
+        #known_optimal=known_optimal,
+        #runs=10,
+        #experiment_type=experiment_type
+    #)
 
     exp.experiment_3_ga_vs_memetic(
         problem_file,

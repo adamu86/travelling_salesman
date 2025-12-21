@@ -88,10 +88,10 @@ def tournament_selection(population, dist_matrix, tournament_size=5):
 
 
 def genetic_algorithm(dist_matrix, 
-                     pop_size=None, 
+                     pop_size=None,
                      generations=None,
-                     crossover_type='all',  # 'pmx', 'ox', 'erx', lub 'all'
-                     mutation_type='all',   # 'inversion', 'scramble', lub 'all'
+                     crossover_type='all',
+                     mutation_type='all',
                      crossover_prob=0.9,
                      mutation_prob=0.1,
                      memetic_type=None,
@@ -251,21 +251,24 @@ def genetic_algorithm(dist_matrix,
     }
 
 if __name__ == "__main__":
-    data = read_file_tsp('./data/original/berlin52.tsp')
+    data = read_file_tsp('./data/original/eil51.tsp')
 
     print(f"Dane\n- {data}")
 
     ga = genetic_algorithm(
         distance_matrix(data.node_coords),
-        pop_size=100,
-        generations=100,
-        crossover_type='erx',
-        crossover_prob=0.9,
-        mutation_type='inversion',
-        mutation_prob=0.5,
-        memetic_type='2opt',
-        memetic_mode='elite',
-        # verbose=False
+        pop_size=104, # liczba osobników w populacji
+        generations=None, # liczba generacji (None = auto-stop)
+        crossover_type='all', # 'pmx', 'ox', 'erx', lub 'all'
+        crossover_prob=0.9, # prawdopodobieństwo krzyżowania
+        mutation_type='all', # 'inversion', 'scramble', lub 'all'
+        mutation_prob=0.1, # prawdopodobieństwo mutacji
+        memetic_type='2opt', # '2opt', '3opt', 'lk' lub None
+        memetic_mode='all', # 'all' lub 'elite'
+        convergence_window=100, # liczba generacji do sprawdzenia zbieżności
+        convergence_threshold=0.001, # próg zbieżności
+        max_generations=100, # liczba generacji do auto-stop (po progu zbieżności)
+        verbose=False # wyświetlanie postępu
     )
 
     print("\nWyniki")

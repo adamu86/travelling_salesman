@@ -5,8 +5,6 @@ def two_opt(individual, dist_matrix, max_iters):
     iters = 0
     improved = True
 
-    # print(f"  [2-opt] start distance = {best_distance:.2f}")
-
     while improved and iters < max_iters:
         iters += 1
         improved = False
@@ -21,7 +19,6 @@ def two_opt(individual, dist_matrix, max_iters):
                 new_distance = route_distance(new_route, dist_matrix)
 
                 if new_distance < best_distance:
-                    # print(f"    [2-opt] improvement: {best_distance:.2f} → {new_distance:.2f}")
                     best = new_route
                     best_distance = new_distance
                     improved = True
@@ -30,7 +27,6 @@ def two_opt(individual, dist_matrix, max_iters):
             if improved:
                 break
 
-    # print(f"  [2-opt] Iteracje={iters}, final={best_distance:.2f}")
     return best
 
 
